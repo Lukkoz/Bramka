@@ -74,7 +74,7 @@ void loop()
     SendMessage(1,0xAD,0,LED_INT,0);
     SendMessage(2,0xAD,0,LED_INT,0);
     Serial.println("OK");
-  }else if("TEST"){
+  }else if(input == "TEST"){
       SendMessage(1,0xAA,0,LED_INT,0);
       SendMessage(2,0xAA,0,LED_INT,0);
       delay(500);

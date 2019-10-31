@@ -47,7 +47,6 @@ void setup()
   pixels.begin();
   pinMode(Sensor_1_PIN,INPUT);
   pinMode(Sensor_2_PIN,INPUT);
-  pinMode(LED_BUILTIN,OUTPUT);
 
          out_buffer[0] = 100;
          out_buffer[1] = 101;
@@ -55,10 +54,6 @@ void setup()
          out_buffer[3] = 99;
 
   pinMode(4,OUTPUT);                
-  digitalWrite(4,HIGH);
-  delay(500);
-  digitalWrite(4,LOW);
-  delay(500);
   pinMode(MISO,OUTPUT);                   //Sets MISO as OUTPUT (Have to Send data to Master IN 
 
   SPCR |= _BV(SPE);                       //Turn on SPI in Slave Mode
@@ -66,19 +61,23 @@ void setup()
   received = false;
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder (MSBFIRST);
+  lights_up(0, 0, 255);
+  delay(200);
+  lights_up(255,0,0);
 }
 
 
 
 void loop(){
 
-  Read_1 = analogRead(Sensor_1_PIN);
+  /*Read_1 = analogRead(Sensor_1_PIN);
   Read_2 = analogRead(Sensor_2_PIN);
   if(reaction && Read_2 > TRESHOLD || Read_1 > TRESHOLD){
     control_lights(0,Reaction_R,Reaction_G,Reaction_B);
     delay(3000);
     control_lights(1,0,0,0);
-  }      
+  }  
+  */    
 
 }
 
@@ -125,10 +124,12 @@ void handle_message(byte frame[5]) {
        control_lights(1, frame[1], frame[2], frame[3]);
        break;
     case 0xAA:
-       digitalWrite(LED_BUILTIN,HIGH);
+       digitalWrite(4,HIGH);
+       lights_up(255,0,0);
        break;
     case 0xBB:
-        digitalWrite(LED_BUILTIN,LOW);
+        digitalWrite(4,LOW);
+        lights_up(0,0,0);
         break;
     case 0xCC:
          out_buffer[0] = 69;
