@@ -6,12 +6,15 @@ volatile byte Slavereceived,Slavesend;
 #include "Adafruit_NeoPixel.h"
 #define   Sensor_1_PIN  A6
 #define   Sensor_2_PIN A7
-#define   LEDPIN 6
+#define   LEDPIN 9
 #define   NUMPIXELS 144
 #define   TRESHOLD 500
+#define   PROMPT_PIN 6
 int Read_1;   
 int Read_2; 
 bool pad_hit = false; 
+long reactionTime = 1000;
+long hitTime;
 
 char out_buffer[4];
 byte frame[6];
@@ -20,6 +23,7 @@ byte Reaction_G =0;
 byte Reaction_B =0;
 bool reaction = false;
 int counter = 0;
+bool hitSignal = false;
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
 
@@ -55,12 +59,15 @@ void setup()
 
   pinMode(4,OUTPUT);                
   pinMode(MISO,OUTPUT);                   //Sets MISO as OUTPUT (Have to Send data to Master IN 
+  pinMode(PROMPT_PIN,OUTPUT);
+  digitalWrite(PROMPT_PIN,LOW);
 
   SPCR |= _BV(SPE);                       //Turn on SPI in Slave Mode
   SPCR |= _BV(SPIE);
   received = false;
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder (MSBFIRST);
+  
   lights_up(0, 0, 255);
   delay(200);
   lights_up(255,0,0);
@@ -70,14 +77,21 @@ void setup()
 
 void loop(){
 
-  /*Read_1 = analogRead(Sensor_1_PIN);
+  Read_1 = analogRead(Sensor_1_PIN);
   Read_2 = analogRead(Sensor_2_PIN);
-  if(reaction && Read_2 > TRESHOLD || Read_1 > TRESHOLD){
-    control_lights(0,Reaction_R,Reaction_G,Reaction_B);
-    delay(3000);
-    control_lights(1,0,0,0);
+  if(Read_2 > TRESHOLD || Read_1 > TRESHOLD){
+    if(reaction)control_lights(0,Reaction_R,Reaction_G,Reaction_B);
+    hitSignal = true;
+    digitalWrite(PROMPT_PIN,HIGH);
+    hitTime = millis();
   }  
-  */    
+  if(reaction && hitSignal && reactionTime != 0){
+    if((millis()-hitTime) > reactionTime){
+      lights_down();
+      hitSignal = false;
+    }
+  }
+      
 
 }
 
@@ -96,9 +110,6 @@ void lights_down() {
 }
 
 void control_lights(byte mode, byte R, byte G, byte B) {
-  #ifdef DEBUG
-  Serial.print("Mode is: "); Serial.println(mode);
-  #endif
   switch (mode) {
     case 0x00:
       lights_up(R, G, B);
@@ -142,7 +153,18 @@ void handle_message(byte frame[5]) {
           Reaction_G = frame[2];
           Reaction_B = frame[3];
           reaction = true;
-      break;
+        break;
+    case 0x11:
+          hitSignal = false;
+          digitalWrite(PROMPT_PIN,LOW);
+        break;
+    case 0x22:
+          reaction = false;
+          digitalWrite(PROMPT_PIN,LOW);
+        break;
+    case 0x33:
+          reactionTime = frame[1]*1000;
+        break;
     default: 
       break;
   }
