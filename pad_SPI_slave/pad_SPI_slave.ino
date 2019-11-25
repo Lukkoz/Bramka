@@ -10,6 +10,20 @@ volatile byte Slavereceived,Slavesend;
 #define   NUMPIXELS 144
 #define   TRESHOLD 500
 #define   PROMPT_PIN 6
+
+#define RED 1
+#define GREEN 2
+#define BLUE 3
+#define REACTION_RED 4
+#define REACTION_BLUE 5
+#define REACTION_GREEN 6
+#define DISABLE_REACTION 7
+#define OFF 8
+#define REACTION_TIME_1000 9
+#define REACTION_TIME_2000 10
+#define REACTION_TIME_500 11
+#define CLEAR_HIT_SIGNAL 12
+
 int Read_1;   
 int Read_2; 
 bool pad_hit = false; 
@@ -17,7 +31,7 @@ long reactionTime = 1000;
 long hitTime;
 
 char out_buffer[4];
-byte frame[6];
+byte frame;
 byte Reaction_R =0;
 byte Reaction_G =0;
 byte Reaction_B =0;
@@ -35,12 +49,12 @@ ISR (SPI_STC_vect)                        //Inerrrput routine function
 
 void receiveSPIEvent() {
    // loop through all but the last
-    frame[counter] = SPDR;
-    #ifdef DEBUG
+    frame = SPDR;
+    /*#ifdef DEBUG
     Serial.print(counter); Serial.print(" : ");Serial.println(frame[counter]);
     #endif
-    counter++;
-    if(counter == 4)handle_message(frame);
+    */
+    handle_message(frame);
 }
 
 void setup()
@@ -73,8 +87,6 @@ void setup()
   lights_up(255,0,0);
 }
 
-
-
 void loop(){
 
   Read_1 = analogRead(Sensor_1_PIN);
@@ -90,9 +102,7 @@ void loop(){
       lights_down();
       hitSignal = false;
     }
-  }
-      
-
+  }      
 }
 
 void lights_up(byte R, byte G, byte B) {
@@ -122,51 +132,60 @@ void control_lights(byte mode, byte R, byte G, byte B) {
   }
 }
 
-void handle_message(byte frame[5]) {
+void handle_message(byte frame) {
   byte checksum = 0;
  // for(int kk = 0; kk < 4; kk++) checksum = frame[kk] ^ checksum;
   //checksum += 4;
-  switch (frame[0]) {
+  switch (frame) {
       break;
-    case 0x0C:
-       control_lights(0, frame[1], frame[2], frame[3]);
+    case RED:
+       control_lights(0,255,0,0);
       break;
-    case 0x0B:
-       control_lights(1, frame[1], frame[2], frame[3]);
+    case GREEN:
+       control_lights(0,0,255,0);
        break;
-    case 0xAA:
-       digitalWrite(4,HIGH);
-       lights_up(255,0,0);
+    case BLUE:
+       control_lights(0,0,0,255);
        break;
-    case 0xBB:
-        digitalWrite(4,LOW);
-        lights_up(0,0,0);
-        break;
-    case 0xCC:
-         out_buffer[0] = 69;
-         out_buffer[1] = 70;
-         out_buffer[2] = 127;
-         out_buffer[3] = 90;
-        break;
-    case 0xAD:
-          Reaction_R = frame[1];
-          Reaction_G = frame[2];
-          Reaction_B = frame[3];
+     case OFF:
+       control_lights(0,0,0,0);
+      break;
+    case REACTION_RED:
+          Reaction_R = 255;
+          Reaction_G = 0;
+          Reaction_B = 0;
           reaction = true;
         break;
-    case 0x11:
+    case REACTION_GREEN:
+          Reaction_R = 0;
+          Reaction_G = 255;
+          Reaction_B = 0;
+          reaction = true;
+        break;
+    case REACTION_BLUE:
+          Reaction_R = 0;
+          Reaction_G = 0;
+          Reaction_B = 255;
+          reaction = true;
+        break;
+    case CLEAR_HIT_SIGNAL:
           hitSignal = false;
           digitalWrite(PROMPT_PIN,LOW);
         break;
-    case 0x22:
+    case DISABLE_REACTION:
           reaction = false;
           digitalWrite(PROMPT_PIN,LOW);
         break;
-    case 0x33:
-          reactionTime = frame[1]*1000;
+    case REACTION_TIME_1000:
+          reactionTime = 1000;
+        break;
+    case REACTION_TIME_2000:
+          reactionTime = 2000;
+        break;
+    case REACTION_TIME_500:
+          reactionTime = 500;
         break;
     default: 
       break;
   }
-  counter = 0;
 }

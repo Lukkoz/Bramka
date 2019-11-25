@@ -7,6 +7,19 @@
 #define Z  25
 #define EN 26
 
+//Colors:
+#define RED 1
+#define GREEN 2
+#define BLUE 3
+#define REACTION_RED 4
+#define REACTION_BLUE 5
+#define REACTION_GREEN 6
+#define DISABLE_REACTION 7
+#define OFF 8
+#define REACTION_TIME_1000 9
+#define REACTION_TIME_2000 10
+#define REACTION_TIME_500 11
+
 byte padsConnected =2;
 
 SPIHandler *comm;
@@ -18,7 +31,8 @@ byte Header_byte(byte nSend,byte nRec){
 }
 
 void SendMessage(byte addr,byte command, byte R = 0,byte G = 0, byte B = 0){
-  byte msg[] = {Header_byte(4,0),command,R,G,B};
+void SendMessage(byte addr,byte command){
+  byte msg[] = {Header_byte(1,0),command};
   SetCS(addr);
   delay(5);
   comm->SPITransfer(msg);
@@ -47,20 +61,20 @@ void ClearMulti(){
   digitalWrite(S0,LOW);
 }
 
-void setPanelColor(byte panelId,byte R,byte G, byte B){
-  SendMessage(panelId,0x0C,R,G,B);
+void setPanelColor(byte panelId,byte colorID){
+  SendMessage(panelId,colorID);
 }
 
-void setPanelReactionColor(byte panelId,byte R,byte G, byte B){
-  SendMessage(panelId,0xAD,R,G,B);
+void setPanelReactionColor(byte panelId,byte colorID){
+  SendMessage(panelId,colorID);
 }
 
 void disableReaction(byte panelId){
-  SendMessage(panelId,0x22,0,0,0);
+  SendMessage(panelId,DISABLE_REACTION);
 }
 
 void setReactionTime(byte panelId,byte reactionSeconds){
-  SendMessage(panelId,0x33,reactionSeconds,0,0);
+  SendMessage(panelId,reactionSeconds);
 }
 
 bool CheckPromptPin(byte panelId){
@@ -89,13 +103,13 @@ void setup()
 
 void loop()
 {
-  setPanelColor(1,0,0,0);
-  setPanelColor(2,255,0,0);
+  setPanelColor(1,RED);
+  setPanelColor(2,OFF);
   delay(500);
-  setPanelColor(2,0,0,0);
-  setPanelColor(1,255,0,0);
+  setPanelColor(2,RED);
+  setPanelColor(1,OFF);
   delay(500);
-	String input = " ";
+	/*String input = " ";
   if(Serial.available()){
     input = Serial.readString();
     if(input == "ON"){
@@ -127,7 +141,7 @@ void loop()
       setPanelColor(1,0,0,255);
   }
 
-}
+}*/
 }
 
 
