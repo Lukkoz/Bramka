@@ -41,26 +41,11 @@ bool hitSignal = false;
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
 
-ISR (SPI_STC_vect)                        //Inerrrput routine function 
-{
-  receiveSPIEvent();         // Value received from master if store in variable slavereceived 
-  //Sets received as True 
-}
-
-void receiveSPIEvent() {
-   // loop through all but the last
-    frame = SPDR;
-    /*#ifdef DEBUG
-    Serial.print(counter); Serial.print(" : ");Serial.println(frame[counter]);
-    #endif
-    */
-    handle_message(frame);
-}
 
 void setup()
 
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   
   pixels.begin();
   pinMode(Sensor_1_PIN,INPUT);
@@ -76,15 +61,20 @@ void setup()
   pinMode(PROMPT_PIN,OUTPUT);
   digitalWrite(PROMPT_PIN,LOW);
 
-  SPCR |= _BV(SPE);                       //Turn on SPI in Slave Mode
-  SPCR |= _BV(SPIE);
-  received = false;
-  SPI.setDataMode(SPI_MODE0);
-  SPI.setBitOrder (MSBFIRST);
+
   
   lights_up(0, 0, 255);
   delay(200);
   lights_up(255,0,0);
+}
+
+
+void MasterMSGCheck(){
+if(Serial.available()){
+   while(Serial.available()){
+      handle_message(Serial.read());
+   }
+  }
 }
 
 void loop(){

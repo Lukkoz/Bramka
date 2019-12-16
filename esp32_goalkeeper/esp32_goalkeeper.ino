@@ -23,7 +23,6 @@
 
 byte padsConnected =2;
 
-SPIHandler *comm;
 SPIHandler *mux;
 byte output_buffer[16] = {0};
 
@@ -32,10 +31,9 @@ byte Header_byte(byte nSend,byte nRec){
 }
 
 void SendMessage(byte addr,byte command){
-  byte msg[] = {Header_byte(1,0),command};
   SetCS(addr);
   delay(5);
-  comm->SPITransfer(msg);
+  Serial.write(command);
   ClearCS(addr);
 }
 
@@ -84,10 +82,7 @@ bool CheckPromptPin(byte panelId){
 
 void setup()
 {
-	Serial.begin(115200);
-	comm = new SPIHandler(13,12,14,22);
-	comm->set_SPI_Settings(4000000, MSBFIRST, SPI_MODE0);
-  comm->set_SPI_bit_format(8);
+	Serial.begin(9600);
 
   mux = new SPIHandler(0,2,15,4);
   mux->set_SPI_Settings(4000000, MSBFIRST, SPI_MODE0);
