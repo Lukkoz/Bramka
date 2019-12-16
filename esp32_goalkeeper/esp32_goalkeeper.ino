@@ -20,6 +20,7 @@
 #define REACTION_TIME_2000 10
 #define REACTION_TIME_500 11
 
+
 byte padsConnected =2;
 
 SPIHandler *comm;
@@ -30,7 +31,6 @@ byte Header_byte(byte nSend,byte nRec){
   return(nSend | (nRec<<4));             //number of bytes to send        
 }
 
-void SendMessage(byte addr,byte command, byte R = 0,byte G = 0, byte B = 0){
 void SendMessage(byte addr,byte command){
   byte msg[] = {Header_byte(1,0),command};
   SetCS(addr);
