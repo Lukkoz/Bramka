@@ -20,6 +20,7 @@
 #define REACTION_TIME_2000 10
 #define REACTION_TIME_500 11
 
+
 byte padsConnected =2;
 
 SPIHandler *comm;
