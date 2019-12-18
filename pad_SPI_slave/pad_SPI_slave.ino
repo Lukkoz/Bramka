@@ -4,9 +4,9 @@ volatile boolean received;
 volatile byte Slavereceived,Slavesend;
 
 #include "Adafruit_NeoPixel.h"
-#define   Sensor_1_PIN  A6
-#define   Sensor_2_PIN A7
-#define   LEDPIN 9
+#define   Sensor_1_PIN  A1
+#define   Sensor_2_PIN A0
+#define   LEDPIN 5
 #define   NUMPIXELS 144
 #define   TRESHOLD 500
 #define   PROMPT_PIN 6
@@ -46,10 +46,11 @@ void setup()
 
 {
   Serial.begin(9600);
-  
   pixels.begin();
   pinMode(Sensor_1_PIN,INPUT);
   pinMode(Sensor_2_PIN,INPUT);
+  pinMode(2,OUTPUT);
+  digitalWrite(2,LOW);
 
          out_buffer[0] = 100;
          out_buffer[1] = 101;
@@ -60,24 +61,31 @@ void setup()
   pinMode(MISO,OUTPUT);                   //Sets MISO as OUTPUT (Have to Send data to Master IN 
   pinMode(PROMPT_PIN,OUTPUT);
   digitalWrite(PROMPT_PIN,LOW);
+  pinMode(13,OUTPUT);
 
 
   
   lights_up(0, 0, 255);
+  digitalWrite(13,HIGH);
   delay(200);
   lights_up(255,0,0);
+  digitalWrite(13,LOW);
+  delay(200);
+  digitalWrite(13,HIGH);
 }
 
 
 void MasterMSGCheck(){
-if(Serial.available()){
-   while(Serial.available()){
-      handle_message(Serial.read());
+if(Serial.available() > 0){
+   while(Serial.available() >0){
+    byte tmp = Serial.read();
+      handle_message(tmp);
    }
   }
 }
 
 void loop(){
+MasterMSGCheck();
 
   Read_1 = analogRead(Sensor_1_PIN);
   Read_2 = analogRead(Sensor_2_PIN);
@@ -113,9 +121,11 @@ void control_lights(byte mode, byte R, byte G, byte B) {
   switch (mode) {
     case 0x00:
       lights_up(R, G, B);
+       digitalWrite(13,HIGH);
       break;
     case 0x01:
       lights_down();
+       digitalWrite(13,LOW);
       break;
      default:
       break;
@@ -130,6 +140,7 @@ void handle_message(byte frame) {
       break;
     case RED:
        control_lights(0,255,0,0);
+         digitalWrite(13,HIGH);
       break;
     case GREEN:
        control_lights(0,0,255,0);
@@ -139,6 +150,7 @@ void handle_message(byte frame) {
        break;
      case OFF:
        control_lights(0,0,0,0);
+         digitalWrite(13,LOW);
       break;
     case REACTION_RED:
           Reaction_R = 255;
