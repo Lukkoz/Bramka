@@ -31,10 +31,9 @@ byte Header_byte(byte nSend,byte nRec){
 }
 
 void SendMessage(byte addr,byte command){
- // SetCS(addr);
-  delay(5);
+  Serial.write(addr);
   Serial.write(command);
-  //ClearCS(addr);
+  Serial.write(addr^command);
 }
 
 void SetMUXIN(byte out){
@@ -87,7 +86,7 @@ void setup()
 	Serial.begin(9600);
   
 
-  mux = new SPIHandler(0,2,15,4);
+  mux = new SPIHandler(12,13,14,4);
   mux->set_SPI_Settings(4000000, MSBFIRST, SPI_MODE0);
   mux->set_SPI_bit_format(8);
   
@@ -97,18 +96,18 @@ void setup()
   pinMode(S0,OUTPUT);
   ClearMulti();
   delay(5000);
-  setPanelReactionColor(1,REACTION_BLUE);
+  //setPanelReactionColor(1,REACTION_BLUE);
 }
 
 void loop()
 {
 
-  //setPanelColor(1,RED);
-  //setPanelColor(2,OFF);
-  //delay(500);
-  //setPanelColor(2,RED);
-  //setPanelColor(1,OFF);
-  //delay(500);
+  setPanelColor(1,RED);
+  setPanelColor(2,OFF);
+  delay(1000);
+  setPanelColor(2,RED);
+  setPanelColor(1,OFF);
+  delay(1000);
 	/*String input = " ";
   if(Serial.available()){
     input = Serial.readString();

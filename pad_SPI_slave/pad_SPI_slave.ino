@@ -9,7 +9,8 @@ volatile byte Slavereceived,Slavesend;
 #define   LEDPIN 5
 #define   NUMPIXELS 144
 #define   TRESHOLD 500
-#define   PROMPT_PIN 6
+#define   PROMPT_PIN 4
+#define   SLAVE_CS 3
 
 #define RED 1
 #define GREEN 2
@@ -29,6 +30,7 @@ int Read_2;
 bool pad_hit = false; 
 long reactionTime = 1000;
 long hitTime;
+byte padID = 2;
 
 char out_buffer[4];
 byte frame;
@@ -38,7 +40,7 @@ byte Reaction_B =0;
 bool reaction = false;
 int counter = 0;
 bool hitSignal = false;
-
+byte msg[3];
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
 
 
@@ -50,6 +52,7 @@ void setup()
   pinMode(Sensor_1_PIN,INPUT);
   pinMode(Sensor_2_PIN,INPUT);
   pinMode(2,OUTPUT);
+  pinMode(SLAVE_CS,INPUT);
   digitalWrite(2,LOW);
 
          out_buffer[0] = 100;
@@ -62,9 +65,6 @@ void setup()
   pinMode(PROMPT_PIN,OUTPUT);
   digitalWrite(PROMPT_PIN,LOW);
   pinMode(13,OUTPUT);
-
-
-  
   lights_up(0, 0, 255);
   digitalWrite(13,HIGH);
   delay(200);
@@ -78,15 +78,23 @@ void setup()
 void MasterMSGCheck(){
 if(Serial.available() > 0){
    while(Serial.available() >0){
-    byte tmp = Serial.read();
-      handle_message(tmp);
+      msg[counter] = Serial.read();
+      counter++;
+      if(counter == 3 && checksum()){
+        if(msg[0] == padID)handle_message(msg[1]);
+        counter = 0;
+      }
    }
   }
 }
 
+bool checksum(){
+  if(msg[0]^msg[1] == msg[2])return(true);
+  return(false);
+}
+
 void loop(){
 MasterMSGCheck();
-
   Read_1 = analogRead(Sensor_1_PIN);
   Read_2 = analogRead(Sensor_2_PIN);
   if(Read_2 > TRESHOLD || Read_1 > TRESHOLD){
