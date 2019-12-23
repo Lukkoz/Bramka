@@ -34,10 +34,10 @@ byte padID = 2;
 
 char out_buffer[4];
 byte frame;
-byte Reaction_R =0;
-byte Reaction_G =0;
-byte Reaction_B =0;
-bool reaction = false;
+byte Reaction_R =255;
+byte Reaction_G =255;
+byte Reaction_B =255;
+bool reaction = true;
 int counter = 0;
 bool hitSignal = false;
 byte msg[3];
