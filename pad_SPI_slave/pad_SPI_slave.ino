@@ -30,20 +30,22 @@ int Read_2;
 bool pad_hit = false; 
 long reactionTime = 1000;
 long hitTime;
-byte padID = 2;
+byte padID = 4;
 
 char out_buffer[4];
 byte frame;
 byte Reaction_R =0;
 byte Reaction_G =0;
 byte Reaction_B =0;
+
+byte current_R = 0;
+byte current_G = 0;
+byte current_B = 0;
 bool reaction = false;
 int counter = 0;
 bool hitSignal = false;
 byte msg[3];
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
-
-
 void setup()
 
 {
@@ -52,17 +54,8 @@ void setup()
   pinMode(Sensor_1_PIN,INPUT);
   pinMode(Sensor_2_PIN,INPUT);
   pinMode(2,OUTPUT);
-  pinMode(SLAVE_CS,INPUT);
   digitalWrite(2,LOW);
 
-         out_buffer[0] = 100;
-         out_buffer[1] = 101;
-         out_buffer[2] = 102;
-         out_buffer[3] = 99;
-
-  pinMode(4,OUTPUT);                
-  pinMode(MISO,OUTPUT);                   //Sets MISO as OUTPUT (Have to Send data to Master IN 
-  pinMode(PROMPT_PIN,OUTPUT);
   digitalWrite(PROMPT_PIN,LOW);
   pinMode(13,OUTPUT);
   lights_up(0, 0, 255);
@@ -105,7 +98,7 @@ MasterMSGCheck();
   }  
   if(reaction && hitSignal && reactionTime != 0){
     if((millis()-hitTime) > reactionTime){
-      lights_down();
+      control_lights(0,current_R,current_G,current_B);
       hitSignal = false;
     }
   }      
@@ -148,17 +141,29 @@ void handle_message(byte frame) {
       break;
     case RED:
        control_lights(0,255,0,0);
-         digitalWrite(13,HIGH);
+       digitalWrite(13,HIGH);
+        current_R = 255;
+        current_G = 0;
+        current_B = 0;
       break;
     case GREEN:
        control_lights(0,0,255,0);
+        current_R = 0;
+        current_G = 255;
+        current_B = 0;
        break;
     case BLUE:
        control_lights(0,0,0,255);
+        current_R = 0;
+        current_G = 0;
+        current_B = 255;
        break;
      case OFF:
        control_lights(0,0,0,0);
-         digitalWrite(13,LOW);
+        current_R = 0;
+        current_G = 0;
+        current_B = 0;
+        digitalWrite(13,LOW);
       break;
     case REACTION_RED:
           Reaction_R = 255;

@@ -84,30 +84,31 @@ void setup()
 	pinMode(21,OUTPUT);
   digitalWrite(21,HIGH);
 	Serial.begin(9600);
-  
-
-  mux = new SPIHandler(12,13,14,4);
-  mux->set_SPI_Settings(4000000, MSBFIRST, SPI_MODE0);
-  mux->set_SPI_bit_format(8);
-  
-  pinMode(S1,OUTPUT);
-  pinMode(S2,OUTPUT);
-  pinMode(S3,OUTPUT);
-  pinMode(S0,OUTPUT);
-  ClearMulti();
-  delay(5000);
+  delay(2000);
   //setPanelReactionColor(1,REACTION_BLUE);
 }
 
 void loop()
 {
 
-  setPanelColor(1,RED);
-  setPanelColor(2,OFF);
-  delay(1000);
-  setPanelColor(2,RED);
-  setPanelColor(1,OFF);
-  delay(1000);
+for(byte yy = 1 ; yy<5;yy++){
+    setPanelColor(1,OFF);
+    setPanelColor(2,OFF);
+    setPanelColor(3,OFF);
+    setPanelColor(4,OFF);
+    for(byte zz = 1; zz<5; zz++){
+    if(zz == yy){
+      setPanelReactionColor(zz,REACTION_GREEN);
+    }else{
+      setPanelReactionColor(zz,REACTION_RED);
+    }
+    setPanelColor(1,BLUE);
+    delay(30000);
+  }
+}
+
+
+
 	/*String input = " ";
   if(Serial.available()){
     input = Serial.readString();
