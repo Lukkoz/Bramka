@@ -30,14 +30,14 @@ int Read_2;
 bool pad_hit = false; 
 long reactionTime = 1000;
 long hitTime;
-byte padID = 2;
+byte padID = 1;
 
 char out_buffer[4];
 byte frame;
 byte Reaction_R =255;
 byte Reaction_G =255;
 byte Reaction_B =255;
-bool reaction = true;
+bool reaction = false;
 int counter = 0;
 bool hitSignal = false;
 byte msg[3];

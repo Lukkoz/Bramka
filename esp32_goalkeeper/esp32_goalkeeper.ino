@@ -102,12 +102,22 @@ void setup()
 void loop()
 {
 
-  setPanelColor(1,RED);
+  setPanelColor(1,REACTION_GREEN);
+  delay(20);
+  setPanelColor(2,REACTION_RED);
+  delay(20);
+  setPanelColor(1,BLUE);
+  delay(20);
   setPanelColor(2,OFF);
-  delay(1000);
-  setPanelColor(2,RED);
+  delay(5000);
+  setPanelColor(2,REACTION_GREEN);
+  delay(20);
+  setPanelColor(1,REACTION_RED);
+  delay(20);
+  setPanelColor(2,BLUE);
+  delay(20);
   setPanelColor(1,OFF);
-  delay(1000);
+  delay(5000);
 	/*String input = " ";
   if(Serial.available()){
     input = Serial.readString();
