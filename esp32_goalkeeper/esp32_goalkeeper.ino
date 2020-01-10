@@ -90,7 +90,6 @@ void setup()
 
 void loop()
 {
-
 for(byte yy = 1 ; yy<5;yy++){
     setPanelColor(1,OFF);
     setPanelColor(2,OFF);
@@ -102,7 +101,7 @@ for(byte yy = 1 ; yy<5;yy++){
     }else{
       setPanelReactionColor(zz,REACTION_RED);
     }
-    setPanelColor(1,BLUE);
+    setPanelColor(yy,BLUE);
     delay(30000);
   }
 }
