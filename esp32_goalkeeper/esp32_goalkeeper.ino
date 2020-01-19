@@ -41,6 +41,12 @@ void SendMessage(byte addr,byte command){
   delay(20);
 }
 
+void allOFF(){
+for(byte jj =1; jj<padsConnected+1;jj++){
+  setPanel(jj,OFF);
+  setPanel(jj,DISABLE_REACTION);
+  }
+}
 
 void setPanel(byte panelId,byte requestID){
   SendMessage(panelId,requestID);
@@ -58,7 +64,8 @@ void setup()
   pinMode(21,OUTPUT);
   digitalWrite(21,HIGH);
 	Serial.begin(9600);
-  delay(5000);
+  delay(8000);
+  setPanel(0,WHITE);
 
 }
 
@@ -76,12 +83,13 @@ bool buttonCheck(){
 
 void start_game_one(){
   //Serial.println("GAME ONE");
+  setPanel(0,OFF);
   while(true){
   for(byte rr = 1; rr < padsConnected+1;rr++){
     setPanel(rr,OFF);
     setPanel(rr,REACTION_RED);
   }
-  byte panel_to_hit = millis()%(padsConnected+1);
+  byte panel_to_hit = millis()%(padsConnected)+1;
   setPanel(panel_to_hit,REACTION_GREEN);
   setPanel(panel_to_hit,BLUE);
   long game_started = millis();
@@ -95,11 +103,13 @@ void start_game_one(){
   if(button_pressed)break;
   }
   //Serial.println("GAME ENDED!");
+  allOFF();
   game_active = false;
 }
 
 void start_game_two(){
   //Serial.println("GAME TWO");
+  setPanel(0,OFF);
   while(true){
   for(byte rr = 1; rr < padsConnected+1;rr++){
     setPanel(rr,BLUE);
@@ -117,6 +127,7 @@ void start_game_two(){
   if(button_pressed)break;
   }
   //Serial.println("GAME ENDED!");
+  allOFF();
   game_active = false;
 }
 

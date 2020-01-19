@@ -113,7 +113,7 @@ MasterMSGCheck();
     hitTime = millis();
   }  
   if(hitSignal && (reaction_change || reactionTime != 0)){
-    if((millis()-hitTime) > reactionTime){
+    if((millis()-hitTime) > reactionTime || reaction_change){
       back_to_current();
       hitSignal = false;
     }
@@ -157,17 +157,17 @@ void handle_message(byte frame) {
   switch (frame) {
       break;
     case RED:
-       control_lights(0,255,0,0);
+       control_lights(1,255,0,0);
          digitalWrite(13,HIGH);
       break;
     case GREEN:
-       control_lights(0,0,255,0);
+       control_lights(1,0,255,0);
        break;
     case BLUE:
-       control_lights(0,0,0,255);
+       control_lights(1,0,0,255);
        break;
     case WHITE:
-       control_lights(0,255,255,255);
+       control_lights(1,255,255,255);
     break;
      case OFF:
        control_lights(0,0,0,0);
