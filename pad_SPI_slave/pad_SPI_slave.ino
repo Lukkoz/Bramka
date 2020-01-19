@@ -12,6 +12,8 @@ volatile byte Slavereceived,Slavesend;
 #define   PROMPT_PIN 4
 #define   SLAVE_CS 3
 
+#define PAD_ID 4
+
 #define RED 1
 #define GREEN 2
 #define BLUE 3
@@ -24,20 +26,23 @@ volatile byte Slavereceived,Slavesend;
 #define REACTION_TIME_2000 10
 #define REACTION_TIME_500 11
 #define CLEAR_HIT_SIGNAL 12
-
+#define REACTION_CHANGE 13
+#define WHITE 14
 int Read_1;   
 int Read_2; 
 bool pad_hit = false; 
 long reactionTime = 1000;
 long hitTime;
-byte padID = 1;
-
-char out_buffer[4];
+byte padID = PAD_ID;
 byte frame;
 byte Reaction_R =255;
 byte Reaction_G =255;
 byte Reaction_B =255;
+byte current_R =0;
+byte current_G =0;
+byte current_B =0;
 bool reaction = false;
+bool reaction_change = false;
 int counter = 0;
 bool hitSignal = false;
 byte msg[3];
@@ -55,25 +60,29 @@ void setup()
   pinMode(SLAVE_CS,INPUT);
   digitalWrite(2,LOW);
 
-         out_buffer[0] = 100;
-         out_buffer[1] = 101;
-         out_buffer[2] = 102;
-         out_buffer[3] = 99;
 
   pinMode(4,OUTPUT);                
   pinMode(MISO,OUTPUT);                   //Sets MISO as OUTPUT (Have to Send data to Master IN 
   pinMode(PROMPT_PIN,OUTPUT);
   digitalWrite(PROMPT_PIN,LOW);
   pinMode(13,OUTPUT);
-  lights_up(0, 0, 255);
-  digitalWrite(13,HIGH);
+  
+  for(int yy = 0; yy< padID;yy++){
+    digitalWrite(13,HIGH);
+    delay(200);
+    digitalWrite(13,LOW);
+    delay(200);
+  }
+
+  lights_up(255,255,255);
   delay(200);
-  lights_up(255,0,0);
-  digitalWrite(13,LOW);
-  delay(200);
-  digitalWrite(13,HIGH);
+  lights_down();
+
 }
 
+void back_to_current(){
+  control_lights(1,current_R,current_B,current_G);
+}
 
 void MasterMSGCheck(){
 if(Serial.available() > 0){
@@ -98,14 +107,14 @@ MasterMSGCheck();
   Read_1 = analogRead(Sensor_1_PIN);
   Read_2 = analogRead(Sensor_2_PIN);
   if(Read_2 > TRESHOLD || Read_1 > TRESHOLD){
-    if(reaction)control_lights(0,Reaction_R,Reaction_G,Reaction_B);
+    if(reaction)control_lights(reaction_change,Reaction_R,Reaction_G,Reaction_B);
     hitSignal = true;
     digitalWrite(PROMPT_PIN,HIGH);
     hitTime = millis();
   }  
-  if(reaction && hitSignal && reactionTime != 0){
+  if(hitSignal && (reaction_change || reactionTime != 0)){
     if((millis()-hitTime) > reactionTime){
-      lights_down();
+      back_to_current();
       hitSignal = false;
     }
   }      
@@ -129,11 +138,12 @@ void control_lights(byte mode, byte R, byte G, byte B) {
   switch (mode) {
     case 0x00:
       lights_up(R, G, B);
-       digitalWrite(13,HIGH);
       break;
     case 0x01:
-      lights_down();
-       digitalWrite(13,LOW);
+      lights_up(R, G, B);
+      current_B = B;
+      current_G = G;
+      current_R = R;
       break;
      default:
       break;
@@ -156,6 +166,9 @@ void handle_message(byte frame) {
     case BLUE:
        control_lights(0,0,0,255);
        break;
+    case WHITE:
+       control_lights(0,255,255,255);
+    break;
      case OFF:
        control_lights(0,0,0,0);
          digitalWrite(13,LOW);
@@ -188,12 +201,18 @@ void handle_message(byte frame) {
         break;
     case REACTION_TIME_1000:
           reactionTime = 1000;
+           reaction_change = false;
         break;
     case REACTION_TIME_2000:
           reactionTime = 2000;
+           reaction_change = false;
         break;
     case REACTION_TIME_500:
           reactionTime = 500;
+           reaction_change = false;
+        break;
+    case REACTION_CHANGE:
+          reaction_change = true;
         break;
     default: 
       break;

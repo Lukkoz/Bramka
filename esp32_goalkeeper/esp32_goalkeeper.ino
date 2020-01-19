@@ -1,13 +1,16 @@
-#include "Skribot.h"
-#define LED_INT 150
-#define S0 18
-#define S1 5
-#define S2 17
-#define S3 16
-#define Z  25
-#define EN 26
+#define R_BUTTON_PIN 34
+#define G_BUTTON_PIN 32
+#define B_BUTTON_PIN 35
+#define INPUT_BUTTON_PIN 23
+#define BUTTON_PICK_TIME 5000
+#define BUTTON_DEBOUNCE 50
+#define AFTER_CLICK_DEBOUNCE 300
+//BUTTON STATES:
+#define IDLE 0
+#define GAME_ONE 1
+#define GAME_TWO 2
 
-//Colors:
+//PAD REQUESTS:
 #define RED 1
 #define GREEN 2
 #define BLUE 3
@@ -19,139 +22,185 @@
 #define REACTION_TIME_1000 9
 #define REACTION_TIME_2000 10
 #define REACTION_TIME_500 11
+#define REACTION_CHANGE 13
+#define WHITE 14
+
+byte padsConnected =4;
+
+byte buttonstate = 0;
+long last_click;
+bool game_active = false;
+bool state_changed = false;
 
 
-byte padsConnected =2;
-
-SPIHandler *mux;
-byte output_buffer[16] = {0};
-
-byte Header_byte(byte nSend,byte nRec){
-  return(nSend | (nRec<<4));             //number of bytes to send        
-}
 
 void SendMessage(byte addr,byte command){
   Serial.write(addr);
   Serial.write(command);
   Serial.write(addr^command);
+  delay(20);
 }
 
-void SetMUXIN(byte out){
-  if(out & 1 != 0)digitalWrite(S0,HIGH);
-  if(out & 1<<1 != 0)digitalWrite(S1,HIGH);
-  if(out & 1<<2 != 0)digitalWrite(S2,HIGH);
-  if(out & 1<<3 != 0)digitalWrite(S3,HIGH);
-}
-void ClearCS(byte out){
-  byte msg[] = {Header_byte(2,0),0x0B,out};
-  mux->SPITransfer(msg);
-}
-void SetCS(byte out){
-  byte msg[] = {Header_byte(2,0),0x0C,out};
-  mux->SPITransfer(msg);
-}
 
-void ClearMulti(){
-  digitalWrite(S1,LOW);
-  digitalWrite(S2,LOW);
-  digitalWrite(S3,LOW);
-  digitalWrite(S0,LOW);
-}
-
-void setPanelColor(byte panelId,byte colorID){
-  SendMessage(panelId,colorID);
-}
-
-void setPanelReactionColor(byte panelId,byte colorID){
-  SendMessage(panelId,colorID);
-}
-
-void disableReaction(byte panelId){
-  SendMessage(panelId,DISABLE_REACTION);
-}
-
-void setReactionTime(byte panelId,byte reactionSeconds){
-  SendMessage(panelId,reactionSeconds);
-}
-
-bool CheckPromptPin(byte panelId){
-  SetMUXIN(panelId);
-  return(digitalRead(Z) == HIGH);
+void setPanel(byte panelId,byte requestID){
+  SendMessage(panelId,requestID);
 }
 
 void setup()
 {
-	pinMode(21,OUTPUT);
+	pinMode(R_BUTTON_PIN,OUTPUT);
+  pinMode(G_BUTTON_PIN,OUTPUT);
+  pinMode(B_BUTTON_PIN,OUTPUT);
+  pinMode(INPUT_BUTTON_PIN,INPUT_PULLUP);
+  digitalWrite(R_BUTTON_PIN,LOW);
+  digitalWrite(G_BUTTON_PIN,LOW);
+  digitalWrite(B_BUTTON_PIN,LOW);
+  pinMode(21,OUTPUT);
   digitalWrite(21,HIGH);
 	Serial.begin(9600);
-  
-
-  mux = new SPIHandler(12,13,14,4);
-  mux->set_SPI_Settings(4000000, MSBFIRST, SPI_MODE0);
-  mux->set_SPI_bit_format(8);
-  
-  pinMode(S1,OUTPUT);
-  pinMode(S2,OUTPUT);
-  pinMode(S3,OUTPUT);
-  pinMode(S0,OUTPUT);
-  ClearMulti();
   delay(5000);
-  //setPanelReactionColor(1,REACTION_BLUE);
+
+}
+
+bool buttonCheck(){
+  if(digitalRead(INPUT_BUTTON_PIN) == LOW){
+    delay(BUTTON_DEBOUNCE);
+    if(digitalRead(INPUT_BUTTON_PIN) == LOW){
+      state_changed = true;
+      last_click = millis();  
+      return true;
+    }
+  }
+  return false;
+}
+
+void start_game_one(){
+  //Serial.println("GAME ONE");
+  while(true){
+  for(byte rr = 1; rr < padsConnected+1;rr++){
+    setPanel(rr,OFF);
+    setPanel(rr,REACTION_RED);
+  }
+  byte panel_to_hit = millis()%(padsConnected+1);
+  setPanel(panel_to_hit,REACTION_GREEN);
+  setPanel(panel_to_hit,BLUE);
+  long game_started = millis();
+  bool button_pressed = false;
+  while(millis()- game_started < 20000){
+    if(buttonCheck()){
+      button_pressed = true;
+      break;
+    }
+  }
+  if(button_pressed)break;
+  }
+  //Serial.println("GAME ENDED!");
+  game_active = false;
+}
+
+void start_game_two(){
+  //Serial.println("GAME TWO");
+  while(true){
+  for(byte rr = 1; rr < padsConnected+1;rr++){
+    setPanel(rr,BLUE);
+    setPanel(rr,REACTION_GREEN);
+    setPanel(rr,REACTION_CHANGE);
+  }
+  long game_started = millis();
+  bool button_pressed = false;
+  while(millis() - game_started < 45000){
+    if(buttonCheck()){
+      button_pressed = true;
+      break;
+    }
+  }
+  if(button_pressed)break;
+  }
+  //Serial.println("GAME ENDED!");
+  game_active = false;
+}
+
+void setButtonColor(byte state){
+  switch(state){
+  case 3:
+   digitalWrite(R_BUTTON_PIN,LOW);
+   digitalWrite(G_BUTTON_PIN,HIGH);
+   digitalWrite(B_BUTTON_PIN,HIGH);
+  break;
+  case GAME_ONE:
+   digitalWrite(R_BUTTON_PIN,HIGH);
+   digitalWrite(G_BUTTON_PIN,LOW);
+   digitalWrite(B_BUTTON_PIN,HIGH);
+   setPanel(0,GREEN);
+  break;
+  case GAME_TWO:
+   digitalWrite(R_BUTTON_PIN,HIGH);
+   digitalWrite(G_BUTTON_PIN,HIGH);
+   digitalWrite(B_BUTTON_PIN,LOW);
+   setPanel(0,BLUE);
+  break;
+  case 4:
+   digitalWrite(R_BUTTON_PIN,LOW);
+   digitalWrite(G_BUTTON_PIN,LOW);
+   digitalWrite(B_BUTTON_PIN,HIGH);
+  break;
+  case 5:
+   digitalWrite(R_BUTTON_PIN,LOW);
+   digitalWrite(G_BUTTON_PIN,HIGH);
+   digitalWrite(B_BUTTON_PIN,LOW);
+  break;
+  case 6:
+   digitalWrite(R_BUTTON_PIN,LOW);
+   digitalWrite(G_BUTTON_PIN,LOW);
+   digitalWrite(B_BUTTON_PIN,LOW);
+  break;
+  case IDLE:
+   digitalWrite(R_BUTTON_PIN,HIGH);
+   digitalWrite(G_BUTTON_PIN,HIGH);
+   digitalWrite(B_BUTTON_PIN,HIGH);
+   setPanel(0,WHITE);
+   //Serial.println("IDLE");
+  break;
+  default:
+  break;
+  }
+}
+void idle(){
+  switch (buttonstate){
+    case IDLE:
+  
+    break;
+    case GAME_ONE:
+      if(!game_active && (millis() - last_click) > BUTTON_PICK_TIME){
+        start_game_one();
+        game_active = false;
+      }
+    break;
+    case GAME_TWO:
+      if(!game_active && (millis() - last_click) > BUTTON_PICK_TIME){
+        start_game_two();
+        game_active = false;
+      }
+    break;
+  }
+
+
 }
 
 void loop()
 {
-
-  setPanelColor(1,REACTION_GREEN);
-  delay(20);
-  setPanelColor(2,REACTION_RED);
-  delay(20);
-  setPanelColor(1,BLUE);
-  delay(20);
-  setPanelColor(2,OFF);
-  delay(5000);
-  setPanelColor(2,REACTION_GREEN);
-  delay(20);
-  setPanelColor(1,REACTION_RED);
-  delay(20);
-  setPanelColor(2,BLUE);
-  delay(20);
-  setPanelColor(1,OFF);
-  delay(5000);
-	/*String input = " ";
-  if(Serial.available()){
-    input = Serial.readString();
-    if(input == "ON"){
-      for(byte tt = 0; tt<padsConnected;tt++){
-        SendMessage(tt,0x0C,0,LED_INT,0); 
-      }
+  if(buttonCheck()){
+    buttonstate++;
+    if(buttonstate == 3){
+      buttonstate = 0;
     }
-    else if(input == "OFF"){
-      for(byte tt = 0; tt<padsConnected;tt++){
-        SendMessage(tt,0x0B); 
-      }
-  }else if(input == "1"){
-    setPanelReactionColor(1,0,LED_INT,0);
-    setPanelReactionColor(2,LED_INT,0,0);
-    setPanelColor(1,255,191,0);
-    setPanelColor(2,0,0,0);
-    Serial.println("OK");
-  }else if(input == "2"){
-    setPanelReactionColor(2,LED_INT,0,0);
-    setPanelReactionColor(1,0,LED_INT,0);
-    setPanelColor(2,255,191,0);
-    setPanelColor(2,0,0,0);
-    Serial.println("OK");
-  }else if(input == "3"){
-    SendMessage(1,0xAD,0,LED_INT,0);
-    SendMessage(2,0xAD,0,LED_INT,0);
-    Serial.println("OK");
-  }else if(input == "TEST"){
-      setPanelColor(1,0,0,255);
+    setButtonColor(buttonstate);
+    game_active = false;
+    delay(AFTER_CLICK_DEBOUNCE);
   }
-
-}*/
+  idle();
 }
+
 
 
 
