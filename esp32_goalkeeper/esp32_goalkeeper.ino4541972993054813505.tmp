@@ -25,7 +25,7 @@
 #define REACTION_CHANGE 13
 #define WHITE 14
 
-byte padsConnected =12;
+byte padsConnected =4;
 
 byte buttonstate = 0;
 long last_click;
@@ -36,9 +36,7 @@ bool state_changed = false;
 
 void SendMessage(byte addr,byte command){
   Serial.write(addr);
-  delay(1);
   Serial.write(command);
-  delay(1);
   Serial.write(addr^command);
   delay(30);
 }
@@ -66,8 +64,6 @@ void setup()
   digitalWrite(21,HIGH);
 	Serial.begin(9600);
   delay(8000);
-  set_all(BLUE);
-  set_all(15);
 }
 
 bool buttonCheck(){
@@ -102,7 +98,6 @@ void start_game_one(){
   }
   //Serial.println("GAME ENDED!");
   set_all(OFF);
-  set_all(DISABLE_REACTION);
   game_active = false;
 }
 
@@ -125,8 +120,6 @@ void start_game_two(){
   }
   //Serial.println("GAME ENDED!");
   set_all(OFF);
-  set_all(DISABLE_REACTION);
-  set_all(REACTION_TIME_500);
   game_active = false;
 }
 
@@ -147,7 +140,7 @@ void setButtonColor(byte state){
    digitalWrite(R_BUTTON_PIN,HIGH);
    digitalWrite(G_BUTTON_PIN,HIGH);
    digitalWrite(B_BUTTON_PIN,LOW);
-   set_all(RED);
+   set_all(BLUE);
   break;
   case 4:
    digitalWrite(R_BUTTON_PIN,LOW);
@@ -168,7 +161,7 @@ void setButtonColor(byte state){
    digitalWrite(R_BUTTON_PIN,HIGH);
    digitalWrite(G_BUTTON_PIN,HIGH);
    digitalWrite(B_BUTTON_PIN,HIGH);
-   set_all(BLUE);
+   set_all(WHITE);
    //Serial.println("IDLE");
   break;
   default:

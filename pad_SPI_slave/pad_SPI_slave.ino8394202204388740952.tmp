@@ -12,7 +12,7 @@ volatile byte Slavereceived,Slavesend;
 #define   PROMPT_PIN 4
 #define   SLAVE_CS 3
 
-#define PAD_ID 3
+#define PAD_ID 4
 
 #define RED 1
 #define GREEN 2
@@ -111,8 +111,8 @@ void loop(){
 MasterMSGCheck();
   Read_1 = analogRead(Sensor_1_PIN);
   Read_2 = analogRead(Sensor_2_PIN);
-  if(Read_2 > treshold || Read_1 > treshold){
-    if(reaction && !hitSignal){
+  if(Read_2 > TRESHOLD || Read_1 > TRESHOLD){
+    if(reaction){
       control_lights(reaction_change,Reaction_R,Reaction_G,Reaction_B);
       hitSignal = true;
       hitTime = millis();
@@ -213,13 +213,6 @@ void handle_message(byte frame) {
     case REACTION_CHANGE:
           reaction_change = true;
         break;
-    case TRESHOLD_UP:
-          treshold = 750;
-       break;
-    case TRESHOLD_DOWN:
-          treshold = 250;
-       break;
-        
     default: 
       break;
   }

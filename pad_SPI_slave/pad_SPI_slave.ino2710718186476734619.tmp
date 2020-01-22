@@ -12,7 +12,7 @@ volatile byte Slavereceived,Slavesend;
 #define   PROMPT_PIN 4
 #define   SLAVE_CS 3
 
-#define PAD_ID 3
+#define PAD_ID 0
 
 #define RED 1
 #define GREEN 2
@@ -28,11 +28,8 @@ volatile byte Slavereceived,Slavesend;
 #define CLEAR_HIT_SIGNAL 12
 #define REACTION_CHANGE 13
 #define WHITE 14
-#define TRESHOLD_UP 15
-#define TRESHOLD_DOWN 16
 int Read_1;   
 int Read_2; 
-int treshold = TRESHOLD;
 bool pad_hit = false; 
 long reactionTime = 1000;
 long hitTime;
@@ -84,7 +81,7 @@ void setup()
 }
 
 void back_to_current(){
-  control_lights(true,current_R,current_G,current_B);
+  control_lights(1,current_R,current_B,current_G);
 }
 
 void MasterMSGCheck(){
@@ -111,15 +108,14 @@ void loop(){
 MasterMSGCheck();
   Read_1 = analogRead(Sensor_1_PIN);
   Read_2 = analogRead(Sensor_2_PIN);
-  if(Read_2 > treshold || Read_1 > treshold){
-    if(reaction && !hitSignal){
-      control_lights(reaction_change,Reaction_R,Reaction_G,Reaction_B);
-      hitSignal = true;
-      hitTime = millis();
-    }  
+  if(Read_2 > TRESHOLD || Read_1 > TRESHOLD){
+    if(reaction)control_lights(reaction_change,Reaction_R,Reaction_G,Reaction_B);
+    hitSignal = true;
+    digitalWrite(PROMPT_PIN,HIGH);
+    hitTime = millis();
   }  
-  if(hitSignal && reactionTime != 0){
-    if((millis()-hitTime) > reactionTime){
+  if(hitSignal && (reaction_change || reactionTime != 0)){
+    if((millis()-hitTime) > reactionTime || reaction_change){
       back_to_current();
       hitSignal = false;
     }
@@ -140,13 +136,20 @@ void lights_down() {
     pixels.show();
 }
 
-void control_lights(bool flag, byte R, byte G, byte B) {
+void control_lights(byte mode, byte R, byte G, byte B) {
+  switch (mode) {
+    case 0x00:
       lights_up(R, G, B);
-      if(flag == true){
-        current_B = B;
-        current_G = G;
-        current_R = R;
-      }
+      break;
+    case 0x01:
+      lights_up(R, G, B);
+      current_B = B;
+      current_G = G;
+      current_R = R;
+      break;
+     default:
+      break;
+  }
 }
 
 void handle_message(byte frame) {
@@ -169,7 +172,7 @@ void handle_message(byte frame) {
        control_lights(1,255,255,255);
     break;
      case OFF:
-       control_lights(1,0,0,0);
+       control_lights(0,0,0,0);
          digitalWrite(13,LOW);
       break;
     case REACTION_RED:
@@ -213,13 +216,6 @@ void handle_message(byte frame) {
     case REACTION_CHANGE:
           reaction_change = true;
         break;
-    case TRESHOLD_UP:
-          treshold = 750;
-       break;
-    case TRESHOLD_DOWN:
-          treshold = 250;
-       break;
-        
     default: 
       break;
   }
