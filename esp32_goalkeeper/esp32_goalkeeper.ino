@@ -1,7 +1,7 @@
 #define R_BUTTON_PIN 34
 #define G_BUTTON_PIN 32
 #define B_BUTTON_PIN 35
-#define INPUT_BUTTON_PIN 23
+#define INPUT_BUTTON_PIN 27
 #define BUTTON_PICK_TIME 5000
 #define BUTTON_DEBOUNCE 50
 #define AFTER_CLICK_DEBOUNCE 300
@@ -44,9 +44,7 @@ void SendMessage(byte addr,byte command){
 }
 
 void set_all(byte req){
-for(byte jj =1; jj<padsConnected+1;jj++){
-  setPanel(jj,req);
-  }
+  setPanel(0,req);
 }
 
 void setPanel(byte panelId,byte requestID){
@@ -62,12 +60,16 @@ void setup()
   digitalWrite(R_BUTTON_PIN,LOW);
   digitalWrite(G_BUTTON_PIN,LOW);
   digitalWrite(B_BUTTON_PIN,LOW);
+  Serial.begin(9600);
   pinMode(21,OUTPUT);
   digitalWrite(21,HIGH);
-	Serial.begin(9600);
   delay(8000);
+  //set_all(15);
+  delay(1000);
   set_all(BLUE);
-  set_all(15);
+  delay(1000);
+  //
+
 }
 
 bool buttonCheck(){

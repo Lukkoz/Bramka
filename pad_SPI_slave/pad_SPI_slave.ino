@@ -8,11 +8,11 @@ volatile byte Slavereceived,Slavesend;
 #define   Sensor_2_PIN A0
 #define   LEDPIN 5
 #define   NUMPIXELS 144
-#define   TRESHOLD 500
+#define   TRESHOLD 400
 #define   PROMPT_PIN 4
 #define   SLAVE_CS 3
 
-#define PAD_ID 3
+#define PAD_ID 12
 
 #define RED 1
 #define GREEN 2
@@ -38,12 +38,12 @@ long reactionTime = 1000;
 long hitTime;
 byte padID = PAD_ID;
 byte frame;
-byte Reaction_R =255;
+byte Reaction_R =0;
 byte Reaction_G =255;
-byte Reaction_B =255;
+byte Reaction_B =0;
 byte current_R =0;
 byte current_G =0;
-byte current_B =0;
+byte current_B =255;
 bool reaction = false;
 bool reaction_change = false;
 int counter = 0;
@@ -54,15 +54,11 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KH
 
 void setup()
 
-{
-  Serial.begin(9600);
+{ 
+  delay(2000);
   pixels.begin();
   pinMode(Sensor_1_PIN,INPUT);
   pinMode(Sensor_2_PIN,INPUT);
-  pinMode(2,OUTPUT);
-  pinMode(SLAVE_CS,INPUT);
-  digitalWrite(2,LOW);
-
 
   pinMode(4,OUTPUT);                
   pinMode(MISO,OUTPUT);                   //Sets MISO as OUTPUT (Have to Send data to Master IN 
@@ -80,6 +76,9 @@ void setup()
   lights_up(255,255,255);
   delay(200);
   lights_down();
+  Serial.begin(9600);
+  pinMode(2,OUTPUT);
+  digitalWrite(2,LOW);
 
 }
 
@@ -95,7 +94,7 @@ if(Serial.available() > 0){
       if(counter == 3){
         counter=0;      
         if(checksum()){
-        if(msg[0] == padID)handle_message(msg[1]);
+        if(msg[0] == padID || msg[0] == 0)handle_message(msg[1]);
       }
      }
    }
@@ -151,8 +150,6 @@ void control_lights(bool flag, byte R, byte G, byte B) {
 
 void handle_message(byte frame) {
   byte checksum = 0;
- // for(int kk = 0; kk < 4; kk++) checksum = frame[kk] ^ checksum;
-  //checksum += 4;
   switch (frame) {
       break;
     case RED:
@@ -214,13 +211,13 @@ void handle_message(byte frame) {
           reaction_change = true;
         break;
     case TRESHOLD_UP:
-          treshold = 750;
+          treshold = 50;
        break;
     case TRESHOLD_DOWN:
-          treshold = 250;
-       break;
-        
+          treshold = 10;
+       break; 
     default: 
+          treshold = frame;
       break;
   }
 }
