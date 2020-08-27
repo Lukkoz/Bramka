@@ -24,6 +24,7 @@
 #define REACTION_TIME_500 11
 #define REACTION_CHANGE 13
 #define WHITE 14
+#define TRESHHOLD_SET 17
 
 byte padsConnected =12;
 
@@ -40,6 +41,17 @@ void SendMessage(byte addr,byte command){
   Serial.write(command);
   delay(1);
   Serial.write(addr^command);
+  delay(30);
+}
+
+void SetTreshold(byte addr,byte reaction_level){
+  Serial.write(addr);
+  delay(1);
+  Serial.write(TRESHHOLD_SET);
+  delay(1);
+  Serial.write(reaction_level);
+  delay(1);
+  Serial.write(addr&^TRESHHOLD_SET^reaction_level);
   delay(30);
 }
 
@@ -68,6 +80,20 @@ void setup()
   delay(1000);
   set_all(BLUE);
   delay(1000);
+  
+  // Setting thresholds for panels in %
+  SetTreshold(1,20);
+  SetTreshold(2,20);
+  SetTreshold(3,20);
+  SetTreshold(4,20);
+  SetTreshold(5,20);
+  SetTreshold(6,20);
+  SetTreshold(7,20);
+  SetTreshold(8,20);
+  SetTreshold(9,20);
+  SetTreshold(10,20);
+  SetTreshold(11,20);
+  SetTreshold(12,20);
   //
 
 }

@@ -30,6 +30,7 @@ volatile byte Slavereceived,Slavesend;
 #define WHITE 14
 #define TRESHOLD_UP 15
 #define TRESHOLD_DOWN 16
+#define TRESHHOLD_SET 17
 int Read_1;   
 int Read_2; 
 int treshold = TRESHOLD;
@@ -91,10 +92,24 @@ if(Serial.available() > 0){
    while(Serial.available() >0){
       msg[counter] = Serial.read();
       counter++;
-      if(counter == 3){
+      if(counter == 3 && msg[1] != TRESHHOLD_SET){
         counter=0;      
         if(checksum()){
         if(msg[0] == padID || msg[0] == 0)handle_message(msg[1]);
+      }
+      if(msg[1] == TRESHHOLD_SET && counter == 4){
+         if(msg[0]^msg[1]^msg[2] == msg[3]){
+          if(msg[0] == padID || msg[0] == 0){
+            treshold = 4095.0*float(msg[3]/100);
+             for(int yy = 0; yy< treshold;yy++){
+                digitalWrite(13,HIGH);
+                delay(200);
+                digitalWrite(13,LOW);
+                delay(200);
+             }
+          } 
+
+         }
       }
      }
    }
