@@ -1,9 +1,7 @@
 #define R_BUTTON_PIN 34
 #define G_BUTTON_PIN 32
 #define B_BUTTON_PIN 35
-#define INPUT_BUTTON_PIN 27
-#define RS_MODE_PIN 21
-
+#define INPUT_BUTTON_PIN 23
 #define BUTTON_PICK_TIME 5000
 #define BUTTON_DEBOUNCE 50
 #define AFTER_CLICK_DEBOUNCE 300
@@ -26,58 +24,31 @@
 #define REACTION_TIME_500 11
 #define REACTION_CHANGE 13
 #define WHITE 14
-#define TRESHHOLD_SET 17
-#define RAPORT_READOUT 18
 
-byte padsConnected =12;
+byte padsConnected =4;
 
 byte buttonstate = 0;
 long last_click;
 bool game_active = false;
 bool state_changed = false;
-byte msg[5];
 
-void enter_transmit_mode(){
-  digitalWrite(RS_MODE_PIN,HIGH);
-}
 
-void enter_recive_mode(){
-  digitalWrite(RS_MODE_PIN,LOW);
-}
 
 void SendMessage(byte addr,byte command){
-  Serial2.write(addr);
-  Serial2.write(command);
-  Serial2.write(addr^command);
-}
-
-void SetTreshold(byte addr,byte reaction_level){
-  Serial2.write(addr);
-  Serial2.write(TRESHHOLD_SET);
-  Serial2.write(reaction_level);
-  Serial2.write(addr^TRESHHOLD_SET^reaction_level);
+  Serial.write(addr);
+  Serial.write(command);
+  Serial.write(addr^command);
+  delay(30);
 }
 
 void set_all(byte req){
-  setPanel(0,req);
+for(byte jj =1; jj<padsConnected+1;jj++){
+  setPanel(jj,req);
+  }
 }
 
 void setPanel(byte panelId,byte requestID){
   SendMessage(panelId,requestID);
-}
-
-void read_from_panel(byte panelId,byte command,byte nbytesToRead){
-  SendMessage(panelId,command);
-  enter_recive_mode();
-  byte ii = 0;
-  while(nbytesToRead !=0){
-    if(Serial2.available() > 0){
-      msg[ii] = Serial2.read();
-      ii++;
-      nbytesToRead--;
-    }
-  }
-  enter_transmit_mode();
 }
 
 void setup()
@@ -89,40 +60,10 @@ void setup()
   digitalWrite(R_BUTTON_PIN,LOW);
   digitalWrite(G_BUTTON_PIN,LOW);
   digitalWrite(B_BUTTON_PIN,LOW);
-  Serial.begin(250000);
-  Serial2.begin(250000);
-  pinMode(RS_MODE_PIN,OUTPUT);
-  enter_transmit_mode();
-  delay(4000);
-  delay(1000);
-  set_all(BLUE);
-  delay(1000);
-  
-  /* Setting thresholds for panels in %
-  SetTreshold(1,20);
-  SetTreshold(2,20);
-  SetTreshold(3,20);
-  SetTreshold(4,20);
-  SetTreshold(5,20);
-  SetTreshold(6,20);
-  SetTreshold(7,20);
-  SetTreshold(8,20);
-  SetTreshold(9,20);
-  SetTreshold(10,20);
-  SetTreshold(11,20);
-  SetTreshold(12,20);
-  */
-
-}
-
-void raport_pad_status(){
-  for(int ii = 1; ii< padsConnected+1;ii++){
-    read_from_panel(ii,RAPORT_READOUT,1);
-    Serial.print(ii);
-    Serial.print(":");
-    Serial.print(msg[0]);
-    if(ii%4==0)Serial.println();
-  }
+  pinMode(21,OUTPUT);
+  digitalWrite(21,HIGH);
+	Serial.begin(9600);
+  delay(8000);
 }
 
 bool buttonCheck(){
@@ -138,7 +79,7 @@ bool buttonCheck(){
 }
 
 void start_game_one(){
-  //Serial2.println("GAME ONE");
+  //Serial.println("GAME ONE");
   while(true){
  set_all(OFF);
  set_all(REACTION_RED);
@@ -155,14 +96,13 @@ void start_game_one(){
   }
   if(button_pressed)break;
   }
-  //Serial2.println("GAME ENDED!");
+  //Serial.println("GAME ENDED!");
   set_all(OFF);
-  set_all(DISABLE_REACTION);
   game_active = false;
 }
 
 void start_game_two(){
-  //Serial2.println("GAME TWO");
+  //Serial.println("GAME TWO");
   setPanel(0,OFF);
   while(true){
   set_all(BLUE);
@@ -178,10 +118,8 @@ void start_game_two(){
   }
   if(button_pressed)break;
   }
-  //Serial2.println("GAME ENDED!");
+  //Serial.println("GAME ENDED!");
   set_all(OFF);
-  set_all(DISABLE_REACTION);
-  set_all(REACTION_TIME_500);
   game_active = false;
 }
 
@@ -202,7 +140,7 @@ void setButtonColor(byte state){
    digitalWrite(R_BUTTON_PIN,HIGH);
    digitalWrite(G_BUTTON_PIN,HIGH);
    digitalWrite(B_BUTTON_PIN,LOW);
-   set_all(RED);
+   set_all(BLUE);
   break;
   case 4:
    digitalWrite(R_BUTTON_PIN,LOW);
@@ -223,8 +161,8 @@ void setButtonColor(byte state){
    digitalWrite(R_BUTTON_PIN,HIGH);
    digitalWrite(G_BUTTON_PIN,HIGH);
    digitalWrite(B_BUTTON_PIN,HIGH);
-   set_all(BLUE);
-   //Serial2.println("IDLE");
+   set_all(WHITE);
+   //Serial.println("IDLE");
   break;
   default:
   break;
@@ -233,7 +171,7 @@ void setButtonColor(byte state){
 void idle(){
   switch (buttonstate){
     case IDLE:
-      raport_pad_status();
+  
     break;
     case GAME_ONE:
       if(!game_active && (millis() - last_click) > BUTTON_PICK_TIME){
@@ -248,7 +186,6 @@ void idle(){
       }
     break;
   }
-
 
 
 }
@@ -266,6 +203,7 @@ void loop()
   }
   idle();
 }
+
 
 
 
