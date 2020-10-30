@@ -9,7 +9,7 @@ volatile byte Slavereceived,Slavesend;
 #define   LEDPIN 5
 #define   NUMPIXELS 144
 #define   TRESHOLD 400
-#define   PROMPT_PIN 4
+#define   RS_MODE_PIN 2
 #define   SLAVE_CS 3
 
 #define PAD_ID 12
@@ -28,9 +28,9 @@ volatile byte Slavereceived,Slavesend;
 #define CLEAR_HIT_SIGNAL 12
 #define REACTION_CHANGE 13
 #define WHITE 14
-#define TRESHOLD_UP 15
-#define TRESHOLD_DOWN 16
 #define TRESHHOLD_SET 17
+#define RAPORT_READOUT 18
+#define READ_TEST 19
 int Read_1;   
 int Read_2; 
 int treshold = TRESHOLD;
@@ -52,32 +52,38 @@ bool hitSignal = false;
 byte msg[3];
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
 
+void enter_transmit_mode(){
+  digitalWrite(RS_MODE_PIN,HIGH);
+   digitalWrite(13,LOW);
+}
+
+void enter_recive_mode(){
+  Serial.flush();
+  digitalWrite(RS_MODE_PIN,LOW);
+  digitalWrite(13,HIGH);
+}
 
 void setup()
 
 { 
-  delay(2000);
   pixels.begin();
-  pinMode(Sensor_1_PIN,INPUT);
-  pinMode(Sensor_2_PIN,INPUT);
 
-  pinMode(4,OUTPUT);                
-  pinMode(MISO,OUTPUT);                   //Sets MISO as OUTPUT (Have to Send data to Master IN 
-  pinMode(PROMPT_PIN,OUTPUT);
-  digitalWrite(PROMPT_PIN,LOW);
-  pinMode(13,OUTPUT);
+  pinMode(RS_MODE_PIN,OUTPUT);
+  enter_recive_mode();
+
+  pinMode(13,OUTPUT);   //DEBUG LED
   
   for(int yy = 0; yy< padID;yy++){
     digitalWrite(13,HIGH);
-    delay(200);
+    delay(20);
     digitalWrite(13,LOW);
-    delay(200);
+    delay(20);
   }
 
   lights_up(255,255,255);
   delay(200);
   lights_down();
-  Serial.begin(9600);
+  Serial.begin(250000);
   pinMode(2,OUTPUT);
   digitalWrite(2,LOW);
 
@@ -122,9 +128,9 @@ bool checksum(){
 }
 
 void loop(){
-MasterMSGCheck();
+  MasterMSGCheck();
   Read_1 = analogRead(Sensor_1_PIN);
-  Read_2 = analogRead(Sensor_2_PIN);
+  //Read_2 = analogRead(Sensor_2_PIN);
   if(Read_2 > treshold || Read_1 > treshold){
     if(reaction && !hitSignal){
       control_lights(reaction_change,Reaction_R,Reaction_G,Reaction_B);
@@ -204,11 +210,11 @@ void handle_message(byte frame) {
         break;
     case CLEAR_HIT_SIGNAL:
           hitSignal = false;
-          digitalWrite(PROMPT_PIN,LOW);
+          //digitalWrite(PROMPT_PIN,LOW);
         break;
     case DISABLE_REACTION:
           reaction = false;
-          digitalWrite(PROMPT_PIN,LOW);
+          //digitalWrite(PROMPT_PIN,LOW);
         break;
     case REACTION_TIME_1000:
           reactionTime = 1000;
@@ -225,12 +231,18 @@ void handle_message(byte frame) {
     case REACTION_CHANGE:
           reaction_change = true;
         break;
-    case TRESHOLD_UP:
-          treshold = 50;
-       break;
-    case TRESHOLD_DOWN:
-          treshold = 10;
-       break; 
+    case RAPORT_READOUT:
+          enter_transmit_mode();
+          Serial.write(255*analogRead(Sensor_1_PIN)/4095);
+          enter_recive_mode();
+        break;  
+    case READ_TEST:
+          digitalWrite(13,HIGH);
+          enter_transmit_mode();
+          Serial.write(69);
+          enter_recive_mode();
+
+        break;
     default: 
           treshold = frame;
       break;

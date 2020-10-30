@@ -28,6 +28,7 @@
 #define WHITE 14
 #define TRESHHOLD_SET 17
 #define RAPORT_READOUT 18
+#define READ_TEST 19
 
 byte padsConnected =12;
 
@@ -42,6 +43,7 @@ void enter_transmit_mode(){
 }
 
 void enter_recive_mode(){
+  Serial2.flush();
   digitalWrite(RS_MODE_PIN,LOW);
 }
 
@@ -70,13 +72,16 @@ void read_from_panel(byte panelId,byte command,byte nbytesToRead){
   SendMessage(panelId,command);
   enter_recive_mode();
   byte ii = 0;
+  Serial.println("waiting for msg");
   while(nbytesToRead !=0){
     if(Serial2.available() > 0){
       msg[ii] = Serial2.read();
+      Serial.println(msg[ii]);
       ii++;
       nbytesToRead--;
     }
   }
+  //delay(1000);
   enter_transmit_mode();
 }
 
@@ -93,10 +98,14 @@ void setup()
   Serial2.begin(250000);
   pinMode(RS_MODE_PIN,OUTPUT);
   enter_transmit_mode();
-  delay(4000);
+  Serial.println();
+  Serial.println("config done");
   delay(1000);
-  set_all(BLUE);
+  /*setPanel(12,RED);
   delay(1000);
+  setPanel(12,OFF);
+  delay(1000);
+  //set_all(BLUE);
   
   /* Setting thresholds for panels in %
   SetTreshold(1,20);
@@ -112,7 +121,11 @@ void setup()
   SetTreshold(11,20);
   SetTreshold(12,20);
   */
-
+  Serial.println("Test readout form panel:");
+  read_from_panel(12,READ_TEST,1);
+  Serial.print("Message:");
+  Serial.println(msg[0]);
+  
 }
 
 void raport_pad_status(){
@@ -233,7 +246,13 @@ void setButtonColor(byte state){
 void idle(){
   switch (buttonstate){
     case IDLE:
-      raport_pad_status();
+      //raport_pad_status();
+      setPanel(12,RED);
+      setPanel(12,OFF);
+      Serial.println("Test readout form panel:");
+      read_from_panel(12,READ_TEST,1);
+      Serial.print("Message:");
+      Serial.println(msg[0]);
     break;
     case GAME_ONE:
       if(!game_active && (millis() - last_click) > BUTTON_PICK_TIME){
