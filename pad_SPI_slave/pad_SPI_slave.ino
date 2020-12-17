@@ -11,7 +11,7 @@ volatile byte Slavereceived,Slavesend;
 #define   TRESHOLD 400
 #define   RS_MODE_PIN 2
 #define   SLAVE_CS 3
-
+/* TUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU KURRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRWWWWWWWWWWWWWWWWWWWWWWAAAAAAAAAAAAAAAAAAA TUUUTUTTTTTTTTTTTTTTTTTTTTTTTTTTTT*/
 #define PAD_ID 12
 
 #define RED 1
@@ -69,20 +69,21 @@ void setup()
   pixels.begin();
 
   pinMode(RS_MODE_PIN,OUTPUT);
-  enter_recive_mode();
-
+ //enter_recive_mode();
+  digitalWrite(RS_MODE_PIN,LOW);
   pinMode(13,OUTPUT);   //DEBUG LED
   
-  for(int yy = 0; yy< padID;yy++){
+ /* for(int yy = 0; yy< padID;yy++){
     digitalWrite(13,HIGH);
     delay(20);
     digitalWrite(13,LOW);
     delay(20);
   }
+  */
 
-  lights_up(255,255,255);
-  delay(200);
-  lights_down();
+ // lights_up(255,255,255);
+  //delay(200);
+  //lights_down();
   Serial.begin(250000);
   pinMode(2,OUTPUT);
   digitalWrite(2,LOW);
@@ -98,24 +99,10 @@ if(Serial.available() > 0){
    while(Serial.available() >0){
       msg[counter] = Serial.read();
       counter++;
-      if(counter == 3 && msg[1] != TRESHHOLD_SET){
+      if(counter == 3){
         counter=0;      
         if(checksum()){
         if(msg[0] == padID || msg[0] == 0)handle_message(msg[1]);
-      }
-      if(msg[1] == TRESHHOLD_SET && counter == 4){
-         if(msg[0]^msg[1]^msg[2] == msg[3]){
-          if(msg[0] == padID || msg[0] == 0){
-            treshold = 4095.0*float(msg[3]/100);
-             for(int yy = 0; yy< treshold;yy++){
-                digitalWrite(13,HIGH);
-                delay(200);
-                digitalWrite(13,LOW);
-                delay(200);
-             }
-          } 
-
-         }
       }
      }
    }
@@ -129,9 +116,9 @@ bool checksum(){
 
 void loop(){
   MasterMSGCheck();
-  Read_1 = analogRead(Sensor_1_PIN);
+ // Read_1 = analogRead(Sensor_1_PIN);
   //Read_2 = analogRead(Sensor_2_PIN);
-  if(Read_2 > treshold || Read_1 > treshold){
+ /* if(Read_2 > treshold || Read_1 > treshold){
     if(reaction && !hitSignal){
       control_lights(reaction_change,Reaction_R,Reaction_G,Reaction_B);
       hitSignal = true;
@@ -143,7 +130,7 @@ void loop(){
       back_to_current();
       hitSignal = false;
     }
-  }      
+  }    */  
 }
 
 void lights_up(byte R, byte G, byte B) {
@@ -174,7 +161,7 @@ void handle_message(byte frame) {
   switch (frame) {
       break;
     case RED:
-       control_lights(1,255,0,0);
+      control_lights(1,255,0,0);
          digitalWrite(13,HIGH);
       break;
     case GREEN:
@@ -187,7 +174,7 @@ void handle_message(byte frame) {
        control_lights(1,255,255,255);
     break;
      case OFF:
-       control_lights(1,0,0,0);
+         control_lights(1,0,0,0);
          digitalWrite(13,LOW);
       break;
     case REACTION_RED:
@@ -233,7 +220,9 @@ void handle_message(byte frame) {
         break;
     case RAPORT_READOUT:
           enter_transmit_mode();
-          Serial.write(255*analogRead(Sensor_1_PIN)/4095);
+            Serial.write(13);
+            Serial.write(normalized_sensor_read());
+            Serial.write(10);
           enter_recive_mode();
         break;  
     case READ_TEST:
@@ -241,10 +230,16 @@ void handle_message(byte frame) {
           enter_transmit_mode();
           Serial.write(69);
           enter_recive_mode();
-
         break;
     default: 
           treshold = frame;
       break;
   }
+}
+
+byte normalized_sensor_read(){
+  int readout = analogRead(Sensor_2_PIN);
+  if(readout > 255)readout = 255;
+  byte out = readout;
+  return(out);
 }

@@ -1,3 +1,5 @@
+#define MIN_REACTION_LEVEL 10
+
 #define R_BUTTON_PIN 34
 #define G_BUTTON_PIN 32
 #define B_BUTTON_PIN 35
@@ -29,14 +31,21 @@
 #define TRESHHOLD_SET 17
 #define RAPORT_READOUT 18
 #define READ_TEST 19
+#define PADS_CONNECTED 12
 
-byte padsConnected =12;
+byte padsConnected =PADS_CONNECTED;
+
+byte pad_readouts[PADS_CONNECTED];
 
 byte buttonstate = 0;
 long last_click;
 bool game_active = false;
 bool state_changed = false;
 byte msg[5];
+bool reaction = false;
+bool panel_on = false;
+byte pad_to_react = 0;
+long on_time = 0;
 
 void enter_transmit_mode(){
   digitalWrite(RS_MODE_PIN,HIGH);
@@ -72,38 +81,47 @@ void read_from_panel(byte panelId,byte command,byte nbytesToRead){
   SendMessage(panelId,command);
   enter_recive_mode();
   byte ii = 0;
-  Serial.println("waiting for msg");
+  //Serial.println("Waiting for pad response");
+  long resptime = millis();
   while(nbytesToRead !=0){
+    if((millis() - resptime) > 1000){
+      Serial.print("Timmout at slave:");
+      Serial.println(panelId);
+      for(byte tt = 0;tt<nbytesToRead;tt++)msg[tt] = 0;
+      break;
+    }
     if(Serial2.available() > 0){
       msg[ii] = Serial2.read();
-      Serial.println(msg[ii]);
       ii++;
       nbytesToRead--;
     }
   }
-  //delay(1000);
   enter_transmit_mode();
 }
 
 void setup()
 {
-	pinMode(R_BUTTON_PIN,OUTPUT);
+	pinMode(RS_MODE_PIN,OUTPUT);
+  digitalWrite(RS_MODE_PIN,HIGH);
+  Serial2.begin(250000);
+  /*pinMode(R_BUTTON_PIN,OUTPUT);
   pinMode(G_BUTTON_PIN,OUTPUT);
   pinMode(B_BUTTON_PIN,OUTPUT);
   pinMode(INPUT_BUTTON_PIN,INPUT_PULLUP);
   digitalWrite(R_BUTTON_PIN,LOW);
   digitalWrite(G_BUTTON_PIN,LOW);
   digitalWrite(B_BUTTON_PIN,LOW);
+  */
   Serial.begin(250000);
-  Serial2.begin(250000);
-  pinMode(RS_MODE_PIN,OUTPUT);
-  enter_transmit_mode();
+  
+ // enter_transmit_mode();
   Serial.println();
   Serial.println("config done");
+  delay(5000);
+  Serial.println("Sending debug blink");
+  setPanel(0,RED);
   delay(1000);
-  /*setPanel(12,RED);
-  delay(1000);
-  setPanel(12,OFF);
+  setPanel(0,OFF);
   delay(1000);
   //set_all(BLUE);
   
@@ -121,21 +139,45 @@ void setup()
   SetTreshold(11,20);
   SetTreshold(12,20);
   */
-  Serial.println("Test readout form panel:");
-  read_from_panel(12,READ_TEST,1);
-  Serial.print("Message:");
-  Serial.println(msg[0]);
   
 }
 
 void raport_pad_status(){
+  bool nonZero = false;
   for(int ii = 1; ii< padsConnected+1;ii++){
-    read_from_panel(ii,RAPORT_READOUT,1);
-    Serial.print(ii);
-    Serial.print(":");
-    Serial.print(msg[0]);
-    if(ii%4==0)Serial.println();
+    read_from_panel(ii,RAPORT_READOUT,3);
+    pad_readouts[ii-1] = msg[1];
+    if(pad_readouts[ii-1] > MIN_REACTION_LEVEL)nonZero = true;
   }
+  if(nonZero){
+    byte max_readout = MIN_REACTION_LEVEL;
+    for(int jj = 0; jj< padsConnected;jj++){ //logging info to serial port
+      if(jj == 11)Serial.print("|");
+      Serial.print(pad_readouts[jj]);
+      if(jj == 11)Serial.print("|");
+      if(jj != padsConnected)Serial.print("\t");
+      if((jj+1)%4 ==0)Serial.println();
+      if(!reaction && pad_readouts[jj] > max_readout){
+        max_readout = pad_readouts[jj];
+        pad_to_react = jj+1;
+      }
+    }
+    if(pad_to_react != 0 && !reaction){
+      setPanel(pad_to_react,BLUE);
+      on_time = millis();
+      reaction = true;
+      panel_on = true;
+    }
+    if(panel_on && on_time-millis() > 2000){
+      setPanel(pad_to_react,OFF);
+      panel_on = false;
+    }
+    if(reaction && on_time-millis() > 4000){
+      reaction = false;
+    }
+
+  }
+  
 }
 
 bool buttonCheck(){
@@ -246,13 +288,7 @@ void setButtonColor(byte state){
 void idle(){
   switch (buttonstate){
     case IDLE:
-      //raport_pad_status();
-      setPanel(12,RED);
-      setPanel(12,OFF);
-      Serial.println("Test readout form panel:");
-      read_from_panel(12,READ_TEST,1);
-      Serial.print("Message:");
-      Serial.println(msg[0]);
+      raport_pad_status();
     break;
     case GAME_ONE:
       if(!game_active && (millis() - last_click) > BUTTON_PICK_TIME){
@@ -274,7 +310,7 @@ void idle(){
 
 void loop()
 {
-  if(buttonCheck()){
+ /* if(buttonCheck()){
     buttonstate++;
     if(buttonstate == 3){
       buttonstate = 0;
@@ -283,7 +319,11 @@ void loop()
     game_active = false;
     delay(AFTER_CLICK_DEBOUNCE);
   }
+
+  
   idle();
+  */
+  raport_pad_status();
 }
 
 
