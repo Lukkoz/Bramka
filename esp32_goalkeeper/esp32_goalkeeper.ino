@@ -1,4 +1,5 @@
-#define MIN_REACTION_LEVEL 10
+#define MIN_REACTION_LEVEL 20
+#define N_SAMPLE 15
 
 #define R_BUTTON_PIN 34
 #define G_BUTTON_PIN 32
@@ -36,7 +37,7 @@
 byte padsConnected =PADS_CONNECTED;
 
 byte pad_readouts[PADS_CONNECTED];
-
+int pad_sums[PADS_CONNECTED] = {0};
 byte buttonstate = 0;
 long last_click;
 bool game_active = false;
@@ -46,6 +47,9 @@ bool reaction = false;
 bool panel_on = false;
 byte pad_to_react = 0;
 long on_time = 0;
+byte pad_history[30][12];
+bool hit_event = false;
+byte event_iterator = 0;
 
 void enter_transmit_mode(){
   digitalWrite(RS_MODE_PIN,HIGH);
@@ -147,36 +151,47 @@ void raport_pad_status(){
   for(int ii = 1; ii< padsConnected+1;ii++){
     read_from_panel(ii,RAPORT_READOUT,3);
     pad_readouts[ii-1] = msg[1];
-    if(pad_readouts[ii-1] > MIN_REACTION_LEVEL)nonZero = true;
+    if(pad_readouts[ii-1] > MIN_REACTION_LEVEL)hit_event = true;
   }
-  if(nonZero){
-    byte max_readout = MIN_REACTION_LEVEL;
-    for(int jj = 0; jj< padsConnected;jj++){ //logging info to serial port
-      if(jj == 11)Serial.print("|");
-      Serial.print(pad_readouts[jj]);
-      if(jj == 11)Serial.print("|");
-      if(jj != padsConnected)Serial.print("\t");
-      if((jj+1)%4 ==0)Serial.println();
-      if(!reaction && pad_readouts[jj] > max_readout){
-        max_readout = pad_readouts[jj];
-        pad_to_react = jj+1;
+  if(hit_event){
+     int max_readout = MIN_REACTION_LEVEL;
+    for(int jj = 0; jj< padsConnected;jj++){ 
+        pad_history[event_iterator][jj] = pad_readouts[jj];
+  
       }
-    }
-    if(pad_to_react != 0 && !reaction){
+      event_iterator++;
+    if(event_iterator == N_SAMPLE){
+      hit_event = false;
+      event_iterator = 0;
+      Serial.println("##############################################");
+      int max_readout = MIN_REACTION_LEVEL;
+      for(byte rr = 0; rr<padsConnected; rr++){
+        Serial.print("Pad");
+        Serial.print(rr+1);
+        Serial.print(": ");
+        for(byte hh = 0; hh<N_SAMPLE;hh++){
+          Serial.print(pad_history[hh][rr]);
+          Serial.print("  ");
+          if(pad_history[hh][rr]>MIN_REACTION_LEVEL)pad_sums[rr]+=pad_history[hh][rr];
+        }
+       
+        if(pad_sums[rr] > max_readout){
+          max_readout = pad_sums[rr];
+          pad_to_react = rr+1;
+        }
+         Serial.print("|");
+         Serial.print(pad_sums[rr]);
+         Serial.print("|");
+         Serial.println();
+      }
+      for(byte kk = 0;kk < PADS_CONNECTED; kk++)pad_sums[kk] =0;
       setPanel(pad_to_react,BLUE);
-      on_time = millis();
-      reaction = true;
-      panel_on = true;
-    }
-    if(panel_on && on_time-millis() > 2000){
+      delay(2000);
       setPanel(pad_to_react,OFF);
-      panel_on = false;
+      delay(500);
     }
-    if(reaction && on_time-millis() > 4000){
-      reaction = false;
     }
-
-  }
+  
   
 }
 
