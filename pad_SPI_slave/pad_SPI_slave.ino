@@ -12,7 +12,7 @@ volatile byte Slavereceived,Slavesend;
 #define   RS_MODE_PIN 2
 #define   SLAVE_CS 3
 /* TUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU KURRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRWWWWWWWWWWWWWWWWWWWWWWAAAAAAAAAAAAAAAAAAA TUUUTUTTTTTTTTTTTTTTTTTTTTTTTTTTTT*/
-#define PAD_ID 1
+#define PAD_ID 12
 
 #define RED 1
 #define GREEN 2
@@ -88,7 +88,7 @@ void setup()
   pinMode(2,OUTPUT);
   digitalWrite(2,LOW);
   for(int i = 0 ; i < PAD_ID; i++){
-    pixels.setPixelColor(i, pixels.Color(R,G,B));                                              
+    pixels.setPixelColor(i, pixels.Color(0,0,255));                                              
   }
     pixels.show(); 
 
