@@ -50,6 +50,7 @@ long on_time = 0;
 byte pad_history[30][12];
 bool hit_event = false;
 byte event_iterator = 0;
+bool valid_message = true;
 
 void enter_transmit_mode(){
   digitalWrite(RS_MODE_PIN,HIGH);
@@ -63,7 +64,9 @@ void enter_recive_mode(){
 void SendMessage(byte addr,byte command){
   Serial2.write(addr);
   Serial2.write(command);
-  Serial2.write(addr^command);
+  byte tmp = addr^command;
+  tmp+=4;
+  Serial2.write(tmp);
 }
 
 void SetTreshold(byte addr,byte reaction_level){
@@ -88,9 +91,13 @@ void read_from_panel(byte panelId,byte command,byte nbytesToRead){
   //Serial.println("Waiting for pad response");
   long resptime = millis();
   while(nbytesToRead !=0){
-    if((millis() - resptime) > 1000){
+    if((millis() - resptime) > 50){
       Serial.print("Timmout at slave:");
       Serial.println(panelId);
+
+      for(byte uu = 0; uu<ii;uu++){
+        Serial.println(msg[uu]);
+      }
       for(byte tt = 0;tt<nbytesToRead;tt++)msg[tt] = 0;
       break;
     }
@@ -98,6 +105,13 @@ void read_from_panel(byte panelId,byte command,byte nbytesToRead){
       msg[ii] = Serial2.read();
       ii++;
       nbytesToRead--;
+    }
+    if(nbytesToRead == 0){
+      if(msg[0] == 13 && (msg[0]^msg[1])+4 == msg[2]){
+        valid_message = true;
+      }else{
+        valid_message = false;
+      }
     }
   }
   enter_transmit_mode();
@@ -178,17 +192,26 @@ void raport_pad_status(){
         if(pad_sums[rr] > max_readout){
           max_readout = pad_sums[rr];
           pad_to_react = rr+1;
-        }
-         Serial.print("|");
-         Serial.print(pad_sums[rr]);
-         Serial.print("|");
-         Serial.println();
+       }
+        Serial.print("|");
+        Serial.print(pad_sums[rr]);
+        Serial.print("|");
+        Serial.println();
       }
-      for(byte kk = 0;kk < PADS_CONNECTED; kk++)pad_sums[kk] =0;
-      setPanel(pad_to_react,BLUE);
+      for(byte kk = 0;kk < PADS_CONNECTED; kk++){
+      if(pad_sums[kk] == max_readout)
+      {
+        setPanel(kk+1,RED);
+      }else if(pad_sums[kk] > max_readout*3/4){
+        setPanel(kk+1,BLUE);
+      }else if(pad_sums[kk] > max_readout/2){
+        setPanel(kk+1,GREEN);
+      }
+      }
       delay(2000);
-      setPanel(pad_to_react,OFF);
+      setPanel(0,OFF);
       delay(500);
+      for(byte kk = 0;kk < PADS_CONNECTED; kk++)pad_sums[kk] =0;
     }
     }
   

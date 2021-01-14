@@ -12,7 +12,7 @@ volatile byte Slavereceived,Slavesend;
 #define   RS_MODE_PIN 2
 #define   SLAVE_CS 3
 /* TUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU KURRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRWWWWWWWWWWWWWWWWWWWWWWAAAAAAAAAAAAAAAAAAA TUUUTUTTTTTTTTTTTTTTTTTTTTTTTTTTTT*/
-#define PAD_ID 12
+#define PAD_ID 1
 
 #define RED 1
 #define GREEN 2
@@ -49,18 +49,18 @@ bool reaction = false;
 bool reaction_change = false;
 int counter = 0;
 bool hitSignal = false;
-byte msg[3];
+byte msg[3],recovery_tmp[5];
+byte i_counter = 0;
+byte checksum_tmp = 0;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
 
 void enter_transmit_mode(){
   digitalWrite(RS_MODE_PIN,HIGH);
-   digitalWrite(13,LOW);
 }
 
 void enter_recive_mode(){
   Serial.flush();
   digitalWrite(RS_MODE_PIN,LOW);
-  digitalWrite(13,HIGH);
 }
 
 void setup()
@@ -87,6 +87,10 @@ void setup()
   Serial.begin(250000);
   pinMode(2,OUTPUT);
   digitalWrite(2,LOW);
+  for(int i = 0 ; i < PAD_ID; i++){
+    pixels.setPixelColor(i, pixels.Color(R,G,B));                                              
+  }
+    pixels.show(); 
 
 }
 
@@ -103,14 +107,38 @@ if(Serial.available() > 0){
         counter=0;      
         if(checksum()){
         if(msg[0] == padID || msg[0] == 0)handle_message(msg[1]);
+      }else{
+        get_back_on_track();
       }
      }
    }
   }
 }
 
+void get_back_on_track(){
+  byte jj = 0;
+  while(jj<5){
+    if(Serial.available() >0){
+      recovery_tmp[jj] = Serial.read();
+      jj++;
+      if(jj == 4 && (recovery_tmp[1]^recovery_tmp[2]) == (recovery_tmp[3]-4)){
+        
+        break;
+      }
+      if(jj == 5 && (recovery_tmp[2]^recovery_tmp[3]) == (recovery_tmp[4]-4)){
+        
+        break;
+      }
+    }
+    digitalWrite(13,HIGH);
+    counter = 0;
+  }
+}
+
 bool checksum(){
-  if(msg[0]^msg[1] == msg[2])return(true);
+  byte tmp =msg[0]^msg[1];
+  tmp+=4;
+  if(tmp == msg[2])return(true);
   return(false);
 }
 
@@ -162,7 +190,7 @@ void handle_message(byte frame) {
       break;
     case RED:
       control_lights(1,255,0,0);
-         digitalWrite(13,HIGH);
+         //digitalWrite(13,HIGH);
       break;
     case GREEN:
        control_lights(1,0,255,0);
@@ -175,7 +203,6 @@ void handle_message(byte frame) {
     break;
      case OFF:
          control_lights(1,0,0,0);
-         digitalWrite(13,LOW);
       break;
     case REACTION_RED:
           Reaction_R = 255;
@@ -221,8 +248,11 @@ void handle_message(byte frame) {
     case RAPORT_READOUT:
           enter_transmit_mode();
             Serial.write(13);
-            Serial.write(normalized_sensor_read());
-            Serial.write(10);
+            checksum_tmp = normalized_sensor_read();
+            Serial.write(checksum_tmp);
+            checksum_tmp=13^checksum_tmp;
+            checksum_tmp+=4;
+            Serial.write(checksum_tmp);
           enter_recive_mode();
         break;  
     case READ_TEST:
