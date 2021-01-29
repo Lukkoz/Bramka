@@ -1,3 +1,4 @@
+#define DEBUG_MODE
 #define MIN_REACTION_LEVEL 20
 #define N_SAMPLE 15
 
@@ -92,9 +93,10 @@ void read_from_panel(byte panelId,byte command,byte nbytesToRead){
   long resptime = millis();
   while(nbytesToRead !=0){
     if((millis() - resptime) > 50){
+      #ifdef DEBUG_MODE
       Serial.print("Timmout at slave:");
       Serial.println(panelId);
-
+      #endif
       for(byte uu = 0; uu<ii;uu++){
         Serial.println(msg[uu]);
       }
@@ -122,21 +124,25 @@ void setup()
 	pinMode(RS_MODE_PIN,OUTPUT);
   digitalWrite(RS_MODE_PIN,HIGH);
   Serial2.begin(250000);
-  /*pinMode(R_BUTTON_PIN,OUTPUT);
+  pinMode(R_BUTTON_PIN,OUTPUT);
   pinMode(G_BUTTON_PIN,OUTPUT);
   pinMode(B_BUTTON_PIN,OUTPUT);
   pinMode(INPUT_BUTTON_PIN,INPUT_PULLUP);
   digitalWrite(R_BUTTON_PIN,LOW);
   digitalWrite(G_BUTTON_PIN,LOW);
   digitalWrite(B_BUTTON_PIN,LOW);
-  */
+  
   Serial.begin(250000);
   
  // enter_transmit_mode();
+  #ifdef DEBUG_MODE
   Serial.println();
   Serial.println("config done");
+  #endif
   delay(5000);
+  #ifdef DEBUG_MODE
   Serial.println("Sending debug blink");
+  #endif
   setPanel(0,RED);
   delay(1000);
   setPanel(0,OFF);
@@ -160,7 +166,7 @@ void setup()
   
 }
 
-void raport_pad_status(){
+byte raport_pad_status(bool debug_mode = false){
   bool nonZero = false;
   for(int ii = 1; ii< padsConnected+1;ii++){
     read_from_panel(ii,RAPORT_READOUT,3);
@@ -177,27 +183,36 @@ void raport_pad_status(){
     if(event_iterator == N_SAMPLE){
       hit_event = false;
       event_iterator = 0;
+      #ifdef DEBUG_MODE
       Serial.println("##############################################");
+      #endif
       int max_readout = MIN_REACTION_LEVEL;
       for(byte rr = 0; rr<padsConnected; rr++){
+      #ifdef DEBUG_MODE
         Serial.print("Pad");
         Serial.print(rr+1);
         Serial.print(": ");
+      #endif
         for(byte hh = 0; hh<N_SAMPLE;hh++){
+          #ifdef DEBUG_MODE
           Serial.print(pad_history[hh][rr]);
           Serial.print("  ");
+          #endif
           if(pad_history[hh][rr]>MIN_REACTION_LEVEL)pad_sums[rr]+=pad_history[hh][rr];
         }
        
-        if(pad_sums[rr] > max_readout){
+      if(pad_sums[rr] > max_readout){
           max_readout = pad_sums[rr];
           pad_to_react = rr+1;
        }
+       #ifdef DEBUG_MODE
         Serial.print("|");
         Serial.print(pad_sums[rr]);
         Serial.print("|");
         Serial.println();
+       #endif
       }
+      if(debug_mode){
       for(byte kk = 0;kk < PADS_CONNECTED; kk++){
       if(pad_sums[kk] == max_readout)
       {
@@ -211,8 +226,12 @@ void raport_pad_status(){
       delay(2000);
       setPanel(0,OFF);
       delay(500);
+      }
       for(byte kk = 0;kk < PADS_CONNECTED; kk++)pad_sums[kk] =0;
+        return(pad_to_react);
     }
+    }else{
+      return(0);
     }
   
   
@@ -231,16 +250,26 @@ bool buttonCheck(){
 }
 
 void start_game_one(){
-  //Serial2.println("GAME ONE");
-  while(true){
- set_all(OFF);
- set_all(REACTION_RED);
-  byte panel_to_hit = millis()%(padsConnected)+1;
-  setPanel(panel_to_hit,REACTION_GREEN);
-  setPanel(panel_to_hit,BLUE);
-  long game_started = millis();
+  #ifdef DEBUG_MODE
+  Serial.println("GAME ONE");
+  #endif
   bool button_pressed = false;
+  while(true){
+  byte panel_to_hit = millis()%(padsConnected)+1;
+  long game_started = millis();
+  set_all(OFF);
+  setPanel(panel_to_hit,BLUE);
   while(millis()- game_started < 20000){
+      byte active_panel = raport_pad_status();
+      if(active_panel !=0 && active_panel == panel_to_hit){
+        setPanel(active_panel,GREEN);
+        delay(2000);
+        break;
+      }else if(active_panel !=0 && active_panel != panel_to_hit){
+        setPanel(active_panel,RED);
+        delay(1000);
+        setPanel(active_panel,OFF);
+      }
     if(buttonCheck()){
       button_pressed = true;
       break;
@@ -248,22 +277,27 @@ void start_game_one(){
   }
   if(button_pressed)break;
   }
-  //Serial2.println("GAME ENDED!");
+  #ifdef DEBUG_MODE
+  Serial.println("GAME ENDED!");
+  #endif
   set_all(OFF);
-  set_all(DISABLE_REACTION);
   game_active = false;
 }
 
 void start_game_two(){
-  //Serial2.println("GAME TWO");
+  #ifdef DEBUG_MODE
+  Serial.println("GAME TWO");
+  #endif
   setPanel(0,OFF);
   while(true){
   set_all(BLUE);
-  set_all(REACTION_GREEN);
-  set_all(REACTION_CHANGE);
   long game_started = millis();
   bool button_pressed = false;
   while(millis() - game_started < 45000){
+    byte active_panel = raport_pad_status();
+    if(active_panel != 0){
+      setPanel(active_panel,GREEN);
+    }
     if(buttonCheck()){
       button_pressed = true;
       break;
@@ -271,7 +305,6 @@ void start_game_two(){
   }
   if(button_pressed)break;
   }
-  //Serial2.println("GAME ENDED!");
   set_all(OFF);
   set_all(DISABLE_REACTION);
   set_all(REACTION_TIME_500);
@@ -326,7 +359,7 @@ void setButtonColor(byte state){
 void idle(){
   switch (buttonstate){
     case IDLE:
-      raport_pad_status();
+     //raport_pad_status(true);
     break;
     case GAME_ONE:
       if(!game_active && (millis() - last_click) > BUTTON_PICK_TIME){
@@ -341,28 +374,22 @@ void idle(){
       }
     break;
   }
-
-
-
 }
 
 void loop()
 {
- /* if(buttonCheck()){
+  if(buttonCheck()){
     buttonstate++;
-    if(buttonstate == 3){
+    if(buttonstate == 4){
       buttonstate = 0;
     }
     setButtonColor(buttonstate);
     game_active = false;
     delay(AFTER_CLICK_DEBOUNCE);
   }
-
-  
   idle();
-  */
-  raport_pad_status();
-}
+  
+  }
 
 
 
