@@ -35,6 +35,10 @@
 #define READ_TEST 19
 #define PADS_CONNECTED 12
 
+#include "goalkeeper_wifi.h"
+
+
+
 byte padsConnected =PADS_CONNECTED;
 
 byte pad_readouts[PADS_CONNECTED];
