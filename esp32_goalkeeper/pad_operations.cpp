@@ -130,7 +130,7 @@ byte raport_pad_status(bool debug_mode){
       delay(500);
       }
       for(byte kk = 0;kk < PADS_CONNECTED; kk++)pad_sums[kk] =0;
-        return(pad_to_react);
+      return(pad_to_react);
     }
     }else{
       return(0);

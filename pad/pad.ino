@@ -11,8 +11,12 @@ volatile byte Slavereceived,Slavesend;
 #define   TRESHOLD 400
 #define   RS_MODE_PIN 2
 #define   SLAVE_CS 3
-/* TUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU KURRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRWWWWWWWWWWWWWWWWWWWWWWAAAAAAAAAAAAAAAAAAA TUUUTUTTTTTTTTTTTTTTTTTTTTTTTTTTTT*/
+
 #define PAD_ID 12
+
+#define INTENSIVITY_0  90
+#define INTENSIVITY_1  150
+#define INTENSIVITY_2  200
 
 #define RED 1
 #define GREEN 2
@@ -22,9 +26,9 @@ volatile byte Slavereceived,Slavesend;
 #define REACTION_GREEN 6
 #define DISABLE_REACTION 7
 #define OFF 8
-#define REACTION_TIME_1000 9
-#define REACTION_TIME_2000 10
-#define REACTION_TIME_500 11
+#define SET_INTENSITIVITY_0 9
+#define SET_INTENSITIVITY_1 10
+#define SET_INTENSITIVITY_2 11
 #define CLEAR_HIT_SIGNAL 12
 #define REACTION_CHANGE 13
 #define WHITE 14
@@ -53,7 +57,7 @@ byte msg[3],recovery_tmp[5];
 byte i_counter = 0;
 byte checksum_tmp = 0;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
-
+byte led_intensitivity = INTENSIVITY_1;
 void enter_transmit_mode(){
   digitalWrite(RS_MODE_PIN,HIGH);
 }
@@ -72,23 +76,11 @@ void setup()
  //enter_recive_mode();
   digitalWrite(RS_MODE_PIN,LOW);
   pinMode(13,OUTPUT);   //DEBUG LED
-  
- /* for(int yy = 0; yy< padID;yy++){
-    digitalWrite(13,HIGH);
-    delay(20);
-    digitalWrite(13,LOW);
-    delay(20);
-  }
-  */
-
- // lights_up(255,255,255);
-  //delay(200);
-  //lights_down();
   Serial.begin(250000);
   pinMode(2,OUTPUT);
   digitalWrite(2,LOW);
   for(int i = 0 ; i < PAD_ID; i++){
-    pixels.setPixelColor(i, pixels.Color(0,0,255));                                              
+    pixels.setPixelColor(2*i, pixels.Color(0,0,led_intensitivity));                                              
   }
     pixels.show(); 
 
@@ -144,26 +136,11 @@ bool checksum(){
 
 void loop(){
   MasterMSGCheck();
- // Read_1 = analogRead(Sensor_1_PIN);
-  //Read_2 = analogRead(Sensor_2_PIN);
- /* if(Read_2 > treshold || Read_1 > treshold){
-    if(reaction && !hitSignal){
-      control_lights(reaction_change,Reaction_R,Reaction_G,Reaction_B);
-      hitSignal = true;
-      hitTime = millis();
-    }  
-  }  
-  if(hitSignal && reactionTime != 0){
-    if((millis()-hitTime) > reactionTime){
-      back_to_current();
-      hitSignal = false;
-    }
-  }    */  
 }
 
 void lights_up(byte R, byte G, byte B) {
     for(int i = 0 ; i < NUMPIXELS; i++){
-      pixels.setPixelColor(i, pixels.Color(R,G,B));                                              
+      if(i%2 ==0)pixels.setPixelColor(i, pixels.Color(R,G,B));                                              
     }
     pixels.show(); 
 }
@@ -189,17 +166,17 @@ void handle_message(byte frame) {
   switch (frame) {
       break;
     case RED:
-      control_lights(1,255,0,0);
+      control_lights(1,led_intensitivity,0,0);
          //digitalWrite(13,HIGH);
       break;
     case GREEN:
-       control_lights(1,0,255,0);
+       control_lights(1,0,led_intensitivity,0);
        break;
     case BLUE:
-       control_lights(1,0,0,255);
+       control_lights(1,0,0,led_intensitivity);
        break;
     case WHITE:
-       control_lights(1,255,255,255);
+       control_lights(1,led_intensitivity,led_intensitivity,led_intensitivity);
     break;
      case OFF:
          control_lights(1,0,0,0);
@@ -230,17 +207,14 @@ void handle_message(byte frame) {
           reaction = false;
           //digitalWrite(PROMPT_PIN,LOW);
         break;
-    case REACTION_TIME_1000:
-          reactionTime = 1000;
-           reaction_change = false;
+    case SET_INTENSITIVITY_0:
+          led_intensitivity = INTENSIVITY_0;
         break;
-    case REACTION_TIME_2000:
-          reactionTime = 2000;
-           reaction_change = false;
+    case SET_INTENSITIVITY_1:
+          led_intensitivity = INTENSIVITY_1;
         break;
-    case REACTION_TIME_500:
-          reactionTime = 500;
-           reaction_change = false;
+    case SET_INTENSITIVITY_2:
+          led_intensitivity = INTENSIVITY_2;
         break;
     case REACTION_CHANGE:
           reaction_change = true;

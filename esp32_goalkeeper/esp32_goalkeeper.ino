@@ -41,7 +41,6 @@ void setup()
   
   Serial.begin(250000);
   
- // enter_transmit_mode();
   #ifdef DEBUG_MODE
   Serial.println();
   Serial.println("config done");
@@ -65,11 +64,11 @@ bool user_action_check(){
     user_state = wifi_check_for_client();
   }else{
     user_state = buttonCheck();
-    delay(AFTER_CLICK_DEBOUNCE);
   }
   if(tmp_state != user_state){
     game_active = false;
     setButtonColor(user_state);
+    delay(AFTER_CLICK_DEBOUNCE);
     return(true);
   }
   return(false);
@@ -82,7 +81,7 @@ byte buttonCheck(){
       state_changed = true;
       last_click = millis();  
       buttonstate++;
-      if(buttonstate == 5){
+      if(buttonstate == 4){
         buttonstate = 0;
       }
     }
@@ -129,15 +128,17 @@ void start_game_two(){
   #ifdef DEBUG_MODE
   Serial.println("GAME TWO");
   #endif
-  setPanel(0,OFF);
   while(true){
-  set_all(BLUE);
+  set_all(OFF);
   long game_started = millis();
   bool user_interrupt = false;
+  set_all(BLUE);
+  delay(200);
   while(millis() - game_started < 45000){
     byte active_panel = raport_pad_status();
     if(active_panel != 0){
       setPanel(active_panel,GREEN);
+      delay(500);
     }
     if(user_action_check()){
       user_interrupt = true;
@@ -153,29 +154,16 @@ void start_game_two(){
 void setButtonColor(byte state){
   switch(state){
   case GAME_ONE:
-   digitalWrite(R_BUTTON_PIN,HIGH);
-   digitalWrite(G_BUTTON_PIN,LOW);
-   digitalWrite(B_BUTTON_PIN,HIGH);
    set_all(GREEN);
   break;
   case GAME_TWO:
-   digitalWrite(R_BUTTON_PIN,HIGH);
-   digitalWrite(G_BUTTON_PIN,HIGH);
-   digitalWrite(B_BUTTON_PIN,LOW);
    set_all(RED);
   break;
   case WIFI_MODE:
-   digitalWrite(R_BUTTON_PIN,LOW);
-   digitalWrite(G_BUTTON_PIN,LOW);
-   digitalWrite(B_BUTTON_PIN,LOW);
    set_all(WHITE);
   break;
   case IDLE:
-   digitalWrite(R_BUTTON_PIN,HIGH);
-   digitalWrite(G_BUTTON_PIN,HIGH);
-   digitalWrite(B_BUTTON_PIN,HIGH);
-   set_all(BLUE);
-   //Serial2.println("IDLE");
+   set_all(OFF);
   break;
   default:
   break;
@@ -184,7 +172,7 @@ void setButtonColor(byte state){
 void idle(){
   switch (user_state){
     case IDLE:
-    
+        raport_pad_status(true);
     break;
     case GAME_ONE:
       if(wifi_control || (!game_active && (millis() - last_click) > BUTTON_PICK_TIME)){

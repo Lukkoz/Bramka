@@ -1,7 +1,7 @@
 #include "goalkeeper_wifi.h"
 
 const char* ssid     = "BramkaZaporX";
-const char* password = "ZaparciaDamiana";
+const char* password = "";
 
 WiFiServer server(80);
 
@@ -13,6 +13,7 @@ byte wifi_state = 0;
 void wifi_begin(){
 	 WiFi.softAP(ssid, password);
 	 IPAddress IP = WiFi.softAPIP();
+	 Serial.println(IP);
 	 server.begin();
 }
 
@@ -49,7 +50,7 @@ byte wifi_check_for_client(){
 		            } 
 		            
 		            // Display the HTML web page
-		            client.println("<!DOCTYPE html><html>");
+		            client.println("<!DOCTYPE html> BRAMKA DEMO <html>");
 		            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
 		            client.println("<link rel=\"icon\" href=\"data:,\">");
 		            // CSS to style the  buttons 
@@ -61,18 +62,18 @@ byte wifi_check_for_client(){
 		            if(wifi_state == 0){
 		            // Menu główne
 			            client.println("<body><h1>Bramka ZaporX</h1>");  
-			            client.println("<p>GRA PIERWSZA - USZCZEL JEDNEGO</p>");      
+			            client.println("<p>GRA PIERWSZA</p>");      
 			            client.println("<p><a href=\"/GAME_ONE/start\"><button class=\"button\">GRA 1</button></a></p>");
-			            client.println("<p>GRA DRUGA - ZAPIERDOL KAZDEMU</p>");
+			            client.println("<p>GRA DRUGA</p>");
 			     		client.println("<p><a href=\"/GAME_TWO/start\"><button class=\"button\">GRA 2</button></a></p>");
 		         	}else if(wifi_state == 1 || wifi_state == 2){
 		            	client.println("<body><h1>GRASZ W GRE:</h1>");
 		            	if(wifi_state == 1){
-		            		client.println("ZAPIERDOL JEDNEGO BAGIETE!");
+		            		client.println("TRAF W WYZNACZONY SEKTOR");
 		            	}else{
-		            		client.println("ZAPIERDL WSZYSTKIE BAGIETY");
+		            		client.println("TRAF WE WSZYSTKIE SEKTORY W MNIEJ NIZ 45 sek.");
 		            	}
-		            	client.println("<p><a href=\"/IDLE\"><button class=\"button button2\">QNIEC GRY</button></a></p>");
+		            	client.println("<p><a href=\"/IDLE\"><button class=\"button button2\">KONIEC GRY</button></a></p>");
 		        	}
 		            client.println("</body></html>");
 		            // The HTTP response ends with another blank line
@@ -86,6 +87,8 @@ byte wifi_check_for_client(){
 		        } else if(c != '\r'){  // if you got anything else but a carriage return character,
 		          currentLine += c;      // add it to the end of the currentLine
 		        }
+	     	}else{
+	     		break;
 	     	}
 	    }
 		// Clear the header variable
