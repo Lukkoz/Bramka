@@ -1,4 +1,15 @@
 #include "goalkeeper_wifi.h"
+
+const char* ssid     = "BramkaZaporX";
+const char* password = "ZaparciaDamiana";
+
+WiFiServer server(80);
+
+String header = "";
+
+String Page_title = "BramkaZaporX - hit cenowy";
+byte wifi_state = 0;
+
 void wifi_begin(){
 	 WiFi.softAP(ssid, password);
 	 IPAddress IP = WiFi.softAPIP();
@@ -27,13 +38,13 @@ byte wifi_check_for_client(){
 		            
 		            // turns the GPIOs on and off
 		            if (header.indexOf("GET /GAME_ONE/start") >= 0) {
-		              state = 1;
+		              wifi_state = 1;
 		              Serial.println("GAME_ONE");
 		            } else if (header.indexOf("GET /GAME_TWO/start") >= 0) {
-		              state = 2;
+		              wifi_state = 2;
 		              Serial.println("GAME_TWO");
 		            } else if (header.indexOf("GET /IDLE") >= 0) {
-		              state = 0;
+		              wifi_state = 0;
 		              Serial.println("IDLE");
 		            } 
 		            
@@ -47,16 +58,16 @@ byte wifi_check_for_client(){
 		            client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
 		            client.println(".button2 {background-color: #555555;}</style></head>");
 		            
-		            if(state == 0){
+		            if(wifi_state == 0){
 		            // Menu główne
 			            client.println("<body><h1>Bramka ZaporX</h1>");  
 			            client.println("<p>GRA PIERWSZA - USZCZEL JEDNEGO</p>");      
 			            client.println("<p><a href=\"/GAME_ONE/start\"><button class=\"button\">GRA 1</button></a></p>");
 			            client.println("<p>GRA DRUGA - ZAPIERDOL KAZDEMU</p>");
 			     		client.println("<p><a href=\"/GAME_TWO/start\"><button class=\"button\">GRA 2</button></a></p>");
-		         	}else if(state == 1 || state == 2){
+		         	}else if(wifi_state == 1 || wifi_state == 2){
 		            	client.println("<body><h1>GRASZ W GRE:</h1>");
-		            	if(state == 1){
+		            	if(wifi_state == 1){
 		            		client.println("ZAPIERDOL JEDNEGO BAGIETE!");
 		            	}else{
 		            		client.println("ZAPIERDL WSZYSTKIE BAGIETY");
@@ -82,5 +93,6 @@ byte wifi_check_for_client(){
 	    // Close the connection
 	    client.stop();
 	}
+	return(wifi_state);
 }
 
