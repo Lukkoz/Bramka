@@ -12,7 +12,7 @@ volatile byte Slavereceived,Slavesend;
 #define   RS_MODE_PIN 2
 #define   SLAVE_CS 3
 
-#define PAD_ID 12
+#define PAD_ID 1
 
 #define INTENSIVITY_0  90
 #define INTENSIVITY_1  150

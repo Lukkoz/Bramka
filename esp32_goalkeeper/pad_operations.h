@@ -7,7 +7,7 @@
 
 #define MIN_REACTION_LEVEL 20
 #define N_SAMPLE 15
-#define PADS_CONNECTED 12
+#define PADS_CONNECTED 1
 
 //PAD REQUESTS:
 #define RED 1
