@@ -2,6 +2,7 @@ import picamera
 import PIL
 from PIL import Image
 from PIL import ImageChops
+import time
 from time import sleep
 import numpy
 import os
@@ -187,40 +188,38 @@ def calculate_multimask_difference(input_photo,reference_photo,masks,signal_tres
     saveImageFormTable(output_table,"raw_diff.jpg")
     outcome = numpy.zeros((masks.shape[0],1),dtype=numpy.bool_)
     output_table = numpy.multiply(output_table,masks[masks.shape[0]-1])
-    saveImageFormTable(output_table,"tmp_00.jpg")
+    #saveImageFormTable(output_table,"tmp_00.jpg")
     tmp_sum_1 = numpy.sum(output_table)
-    print(tmp_sum_1)
     for ll in range(masks.shape[0]):
         if(ll != masks.shape[0] - 1):
             output_table = numpy.multiply(output_table,masks[masks.shape[0]-2-ll])
             tmp_sum = numpy.sum(output_table)
-            outcome[ll] = (tmp_sum_1-tmp_sum) > signal_tresholds[masks.shape[0]-2-ll]
+            outcome[ll] = (tmp_sum_1-tmp_sum) < signal_tresholds[masks.shape[0]-2-ll]
             print(tmp_sum_1-tmp_sum)
             tmp_sum_1 = tmp_sum
         else:
             output_table = output_table*0
-            outcome[ll] = tmp_sum_1 > signal_tresholds[masks.shape[0]-1-ll]
-        saveImageFormTable(output_table,"tmp_"+str(ll)+".jpg")
-        
-        print(signal_tresholds[ll])
+            outcome[ll] = tmp_sum_1 < signal_tresholds[masks.shape[0]-1-ll]
+            print(tmp_sum_1)
+        #saveImageFormTable(output_table,"tmp_"+str(ll)+".jpg")
     print(outcome)
     return(outcome)
 
 def display_info_picture(measurement_output,masks):
     tmp_mask_1 = masks[0]//255
     for ii in range(masks.shape[0]):
-        tmp_mask = masks[ii]
+        tmp_mask = masks[masks.shape[0]-1-ii]
         if(measurement_output[ii]):
-            tmp_mask = masks[ii]*[0,255,0]
+            tmp_mask = masks[masks.shape[0]-1-ii]*[0,255,0]
         else:
-            tmp_mask = masks[ii]*[255,0,0]
+            tmp_mask = masks[masks.shape[0]-1-ii]*[255,0,0]
         tmp_mask_1 = tmp_mask_1+tmp_mask
     saveImageFormTable(tmp_mask_1,"output.jpg")
-    proc = subprocess.Popen(["feh", "--hide-pointer","-S", "filename", "-x", "-q", "-B", "black" , "-g", "854x480","output.jpg"])
+    proc = subprocess.Popen(["feh", "--hide-pointer","-S", "filename", "-x", "-q", "-B", "black" , "-g", "800x480","output.jpg"])
     sleep(3)
     proc.kill()
 with picamera.PiCamera() as camera:
-    camera.resolution = (1292,944)
+    camera.resolution = (800,480)
     sleep(2)
     print(" 1-set background photo.\n 2 -set reference photo.\n 3 - Prepare mask images automaticaly.\n 4 measure target fluctuations.\n 5 Load manual mask image.\n 6. Run background noise estimation\n 7. Start autonomic watchdog.\n  0 - exit program.\n") 
     ref_photo_exist = True
@@ -240,7 +239,8 @@ with picamera.PiCamera() as camera:
         if(command == '1'):
             camera.capture("background.jpg",format="jpeg",use_video_port="True")
             background_photo_exists = True
-            camera.capture("for_manual_mask.bmp",format="bmp")
+            tmp = Image.open("background.jpg")
+            tmp.save("for_manual_mask.bmp")
         elif(command == '2'):
             camera.capture("reference.jpg",format="jpeg",use_video_port="True")
             ref_photo_exist = True
@@ -253,11 +253,18 @@ with picamera.PiCamera() as camera:
             else:
                 print("No reference or background photo detected set it first with \"1\"/\"2\"commands")
         elif(command == '4'):
+            if(nmasks == 0):
+                print("Specify number of slots:")
+                nmasks = int(input())
             params = load_treshold_levels_and_prefered_channels("calibration_parameters.txt")
             mask_table = generate_difference_mask_table(nmasks,params[:,1])
             debug_mask_table = generate_mask_table(nmasks)
+            start = time.time()
             camera.capture("tmp.jpg",format="jpeg",use_video_port="True")
             output = calculate_multimask_difference("tmp.jpg","reference.jpg",mask_table,params[:,0])
+            process_time = time.time()-start
+            print("Process ended. Analysis time:")
+            print(process_time)
             display_info_picture(output,debug_mask_table)
         elif(command == '5'):
             nmasks = prepare_mask_from_photo("for_manual_mask.bmp")
