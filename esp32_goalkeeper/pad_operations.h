@@ -34,7 +34,7 @@ void enter_recive_mode();
 void SendMessage(byte addr,byte command);
 void set_all(byte req);
 void setPanel(byte panelId,byte requestID);
-void read_from_panel(byte panelId,byte command,byte nbytesToRead);
+byte read_from_panel(byte panelId,byte command,byte nbytesToRead);
 byte raport_pad_status(bool debug_mode = false);
 
 #endif

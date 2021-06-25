@@ -49,13 +49,15 @@ void setup()
   #ifdef DEBUG_MODE
   Serial.println("Sending debug blink");
   #endif
-  while(true){
+  
   setPanel(0,RED);
   delay(1000);
   setPanel(0,OFF);
   delay(1000);
-  }
   //set_all(BLUE);
+  while(true){
+    Serial.println(read_from_panel(5,RAPORT_READOUT,3));
+  }
   
   
 }

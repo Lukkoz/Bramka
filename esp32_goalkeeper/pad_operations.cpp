@@ -35,7 +35,7 @@ void setPanel(byte panelId,byte requestID){
   SendMessage(panelId,requestID);
 }
 
-void read_from_panel(byte panelId,byte command,byte nbytesToRead){
+byte read_from_panel(byte panelId,byte command,byte nbytesToRead){
   SendMessage(panelId,command);
   enter_recive_mode();
   byte ii = 0;
@@ -66,6 +66,7 @@ void read_from_panel(byte panelId,byte command,byte nbytesToRead){
     }
   }
   enter_transmit_mode();
+  return(msg[1]);
 }
 
 byte raport_pad_status(bool debug_mode){
