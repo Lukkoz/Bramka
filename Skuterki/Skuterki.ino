@@ -1,22 +1,48 @@
 #include "display.h"
 #include "gps.h"
+#include "gsm.h"
 
 void setup(){
 	//init_dispaly();
-	init_gps();
+	//init_gps();
 	Serial.begin(115200);
-
 }
 
 void loop(){
-	delay(5000);
+	if(Serial.available() >0){
+		char tmp = Serial.read();
+		Serial.flush();
+		if(tmp == 'I'){
+			init_gsm();
+		}else if(tmp == 'S'){
+			runSerialPASS();
+		}else if(tmp == 'T'){
+			set_URL("http://time.jsontest.com");
+			read_URL_json();
+			parse_json_from_buffer();
+		}
+	}
+	/*delay(5000);
 	read_gps_data();
 	Serial.print(current_gps_data.N,6);
 	Serial.print(":");
 	Serial.println(current_gps_data.E,6);
-
+	*/
 }
 
+
+void runSerialPASS(){
+	Serial.println("Serial passthroug active");
+	Serial2.begin(9600);
+	while(true){
+		if(Serial.available()>0){
+    		Serial2.write((char)Serial.read());
+  		}
+    	if(Serial2.available() >0){
+    		Serial.print((char)Serial2.read());
+  		}
+	}
+}
 /*
 AT+HTTPSET="URL","http://time.jsontest.com"  
 
