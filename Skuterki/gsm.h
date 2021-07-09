@@ -18,5 +18,7 @@ bool compare_line(const char* tmp);
 bool send_cmd(const char *cmd,byte lines_to_read_extra = 0);
 response get_value_after(const char* tmp,char end_marker = '\n');
 void printResponse(response tmp);
+void post_data(const char *message);
+void print_buffer();
 
 #endif

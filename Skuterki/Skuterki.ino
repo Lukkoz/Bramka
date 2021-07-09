@@ -2,11 +2,13 @@
 #include "gps.h"
 #include "gsm.h"
 
+const char message[] = "\n{\"email\":\"a@a.com\",\"password\":\"string\"}\n";
 void setup(){
 	//init_dispaly();
 	//init_gps();
 	Serial.begin(115200);
 }
+
 
 void loop(){
 	if(Serial.available() >0){
@@ -20,6 +22,10 @@ void loop(){
 			set_URL("http://time.jsontest.com");
 			read_URL_json();
 			parse_json_from_buffer();
+		}else if(tmp == 'P'){
+			set_URL("https://api.sedaya.app/auth/login");
+			post_data(message);
+			print_buffer();
 		}
 	}
 	/*delay(5000);

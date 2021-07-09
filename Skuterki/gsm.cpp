@@ -7,6 +7,7 @@ bool send_cmd(const char* cmd,byte lines_to_read_extra){
 	bool operation = false;
 	SERIAL_P.println(cmd);
 	readLine();//comnad echo
+	if(lines_to_read_extra != 255){
 	readLine();//OK
 	if(line_buffer[0] != 'O' || line_buffer[1] != 'K'){
 		Serial.print("Fail sending:");
@@ -15,6 +16,7 @@ bool send_cmd(const char* cmd,byte lines_to_read_extra){
 	}
 	operation = true;
 	for(byte rr =0; rr < lines_to_read_extra;rr++)readLine();
+	}
 	return(operation);
 }
 
@@ -100,5 +102,25 @@ void parse_json_from_buffer(){
 	printResponse(data);
 	Serial.print("Czas: ");
 	printResponse(time);
+}
+
+void post_data(const char *message){
+	char tmp[100];
+	int len = strlen(message);
+	send_cmd("AT+HTTPSET=\"CONTYPE\",\"application/json\"");
+	sprintf(tmp,"AT+HTTPDATA=%d",len);
+	send_cmd(tmp,255);
+	send_cmd(message,255);
+	delay(200);
+	sprintf(tmp,"AT+HTTPACT=1,%d",len);
+	send_cmd(tmp,5);
+	send_cmd("AT+HTTPREAD",2);
+	print_buffer();
+
+}
+void print_buffer(){
+	while(SERIAL_P.available()>0){
+		readLine();
+	}
 }
 
