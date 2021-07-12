@@ -3,6 +3,7 @@
 #include "gsm.h"
 
 const char message[] = "\n{\"email\":\"a@a.com\",\"password\":\"string\"}\n";
+const char message_1[] = "\n{\"lat\":\"1111\",\"long\":\"2222\"}\n";
 void setup(){
 	//init_dispaly();
 	//init_gps();
@@ -25,6 +26,10 @@ void loop(){
 		}else if(tmp == 'P'){
 			set_URL("https://api.sedaya.app/auth/login");
 			post_data(message);
+			print_buffer();
+		}else if(tmp == 'L'){
+			set_URL("https://api.sedaya.app/scooter/1");
+			post_data(message_1);
 			print_buffer();
 		}
 	}

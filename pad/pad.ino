@@ -11,8 +11,12 @@ volatile byte Slavereceived,Slavesend;
 #define   TRESHOLD 400
 #define   RS_MODE_PIN 2
 #define   SLAVE_CS 3
+#define   PAD_ID_1 4
+#define   PAD_ID_2 5
+#define   PAD_ID_3 6
+#define   PAD_ID_4 7
 
-#define PAD_ID 1
+#define PAD_ID 10
 
 #define INTENSIVITY_0  90
 #define INTENSIVITY_1  150
@@ -70,6 +74,11 @@ void enter_recive_mode(){
 void setup()
 
 { 
+  pinMode(PAD_ID_1,INPUT);
+  pinMode(PAD_ID_2,INPUT);
+  pinMode(PAD_ID_3,INPUT);
+  pinMode(PAD_ID_4,INPUT);
+  padID = 1*digitalRead(PAD_ID_1)+2*digitalRead(PAD_ID_2)+4*digitalRead(PAD_ID_3)+8*digitalRead(PAD_ID_4);
   pixels.begin();
 
   pinMode(RS_MODE_PIN,OUTPUT);
@@ -79,7 +88,7 @@ void setup()
   Serial.begin(250000);
   pinMode(2,OUTPUT);
   digitalWrite(2,LOW);
-  for(int i = 0 ; i < PAD_ID; i++){
+  for(int i = 0 ; i < padID; i++){
     pixels.setPixelColor(2*i, pixels.Color(0,0,led_intensitivity));                                              
   }
     pixels.show(); 

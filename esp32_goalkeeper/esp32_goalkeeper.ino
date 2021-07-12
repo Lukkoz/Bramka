@@ -55,9 +55,10 @@ void setup()
   setPanel(0,OFF);
   delay(1000);
   //set_all(BLUE);
-  while(true){
+  /*while(true){
     Serial.println(read_from_panel(5,RAPORT_READOUT,3));
   }
+  */
   
   
 }
