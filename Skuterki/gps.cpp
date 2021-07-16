@@ -3,19 +3,20 @@
 TinyGPSPlus gps;
 gps_data current_gps_data;
 
+
 void init_gps(){
-	Serial2.begin(9600);
+	SERIAL_PORT_GPS.begin(9600);
 }
 gps_data read_gps_data(){
-	Serial2.flush();
+	SERIAL_PORT_GPS.flush();
 	delay(1000);
 	check_for_gps_data();
 	return(current_gps_data);
 }
 
 void check_for_gps_data() {
-while (Serial2.available() > 0){
-    char tmp = Serial2.read();
+while (SERIAL_PORT_GPS.available() > 0){
+    char tmp = SERIAL_PORT_GPS.read();
     //Serial.print(tmp);
     if (gps.encode(tmp)){
       current_gps_data.N = gps.location.lat();

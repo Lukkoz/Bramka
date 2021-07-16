@@ -2,7 +2,7 @@
 #define GPS_H
 #include <Arduino.h>
 #include <TinyGPS++.h>
-
+#define SERIAL_PORT_GPS Serial
 
 struct gps_data {
 	float N;

@@ -3,7 +3,7 @@
 #include "gsm.h"
 
 const char message[] = "\n{\"email\":\"a@a.com\",\"password\":\"string\"}\n";
-const char message_1[] = "\n{\"lat\":\"1111\",\"long\":\"2222\"}\n";
+const char message_1[] = "\n{\"lat\":\"69\",\"long\":\"43\"}\n";
 void setup(){
 	//init_dispaly();
 	//init_gps();
@@ -22,15 +22,20 @@ void loop(){
 		}else if(tmp == 'T'){
 			set_URL("http://time.jsontest.com");
 			read_URL_json();
-			parse_json_from_buffer();
-		}else if(tmp == 'P'){
+			runSerialPASS();
+		}else if(tmp == 'L'){
 			set_URL("https://api.sedaya.app/auth/login");
 			post_data(message);
 			print_buffer();
-		}else if(tmp == 'L'){
-			set_URL("https://api.sedaya.app/scooter/1");
+		}else if(tmp == 'P'){
+			set_URL("https://api.sedaya.app/devices/scooters/1");
 			post_data(message_1);
-			print_buffer();
+			parse_json_from_buffer(16);
+		}else if(tmp =='G'){
+			set_URL("https://reqres.in/api/products/1");
+			read_URL_json();
+			runSerialPASS();
+
 		}
 	}
 	/*delay(5000);
@@ -44,7 +49,6 @@ void loop(){
 
 void runSerialPASS(){
 	Serial.println("Serial passthroug active");
-	Serial2.begin(9600);
 	while(true){
 		if(Serial.available()>0){
     		Serial2.write((char)Serial.read());
