@@ -1,17 +1,29 @@
+//#define DISPALY_DEBUG
 #include "display.h"
 #include "gps.h"
 #include "gsm.h"
 
 const char message[] = "\n{\"email\":\"a@a.com\",\"password\":\"string\"}\n";
-const char message_1[] = "\n{\"lat\":\"69\",\"long\":\"43\"}\n";
+const char message_1[] = "\n{\"lat\":\"69\",\"long\":\"43\",\"soundActive\": true,\"battery\":{\"chargeLevel\": 100}}\n";
+
 void setup(){
-	//init_dispaly();
-	//init_gps();
-	Serial.begin(115200);
+	#ifndef DISPALY_DEBUG
+	Serial.begin(9600);
+	init_gsm();
+	init_gps();
+	#else
+	init_display();
+	print_on_display("READY DISP");
+	init_gps();
+	print_on_display("READY GPS");
+	init_gsm();
+	print_on_display("READY GSM");
+	#endif
 }
 
 
 void loop(){
+	/*#ifndef DISPALY_DEBUG
 	if(Serial.available() >0){
 		char tmp = Serial.read();
 		Serial.flush();
@@ -35,15 +47,17 @@ void loop(){
 			set_URL("https://reqres.in/api/products/1");
 			read_URL_json();
 			runSerialPASS();
-
 		}
 	}
-	/*delay(5000);
+	#else
+	byte random_batt_state = millis()%100;
 	read_gps_data();
-	Serial.print(current_gps_data.N,6);
-	Serial.print(":");
-	Serial.println(current_gps_data.E,6);
+	updateServer(1,current_gps_data.N,current_gps_data.E,random_batt_state,"false");
+	#endif
 	*/
+	byte random_batt_state = millis()%100;
+	read_gps_data();
+	updateServer(1,current_gps_data.N,current_gps_data.E,random_batt_state,"false");
 }
 
 
@@ -58,34 +72,3 @@ void runSerialPASS(){
   		}
 	}
 }
-/*
-AT+HTTPSET="URL","http://time.jsontest.com"  
-
-OK
-AT+HTTPACT=0  
-
-OK
-
-+HTTP: 1
-
-+HTTPRES: <0>,<200>,<342> 
-AT+HTTPREAD
-
-OK
-
-+HTTPREAD: 342
-HTTP/1.1 200 OK
-Access-Control-Allow-Origin: *
-Content-Type: application/json
-X-Cloud-Trace-Context: aa85a648a89dc60e93218b918552fffe
-Date: Mon, 28 Jun 2021 19:16:24 GMT
-Server: Google Frontend
-Content-Length: 100
-Connection: close
-
-{
-   "date": "06-28-2021",
-   "milliseconds_since_epoch": 1624907784983,
-   "time": "07:16:24 PM"
-}
-*/

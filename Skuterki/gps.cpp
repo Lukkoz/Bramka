@@ -5,7 +5,7 @@ gps_data current_gps_data;
 
 
 void init_gps(){
-	SERIAL_PORT_GPS.begin(9600);
+	SERIAL_PORT_GPS.begin(9600, SERIAL_8N1, 16, 17);
 }
 gps_data read_gps_data(){
 	SERIAL_PORT_GPS.flush();
@@ -15,9 +15,11 @@ gps_data read_gps_data(){
 }
 
 void check_for_gps_data() {
-while (SERIAL_PORT_GPS.available() > 0){
+  Serial.println("GPS DATA:");
+while (true){
+ if(SERIAL_PORT_GPS.available() > 0){
     char tmp = SERIAL_PORT_GPS.read();
-    //Serial.print(tmp);
+    Serial.print(tmp);
     if (gps.encode(tmp)){
       current_gps_data.N = gps.location.lat();
       current_gps_data.E = gps.location.lng();
@@ -26,4 +28,5 @@ while (SERIAL_PORT_GPS.available() > 0){
     }
 
   }
+}
 }

@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "gsm.h"
 
 char buffer[500];
@@ -12,8 +13,8 @@ bool send_cmd(const char* cmd,byte lines_to_read_extra){
 	if(lines_to_read_extra != 255){
 	readLine();//OK
 	if(line_buffer[0] != 'O' || line_buffer[1] != 'K'){
-		Serial.print("Fail sending:");
-		Serial.println(cmd);
+		//Serial.print("Fail sending:");
+		//Serial.println(cmd);
 		return(operation);
 	}
 	operation = true;
@@ -28,10 +29,20 @@ void init_gsm(){
 	send_cmd("AT+CMEE=2");
 	if(send_cmd("at+mipcall=1,\"internet\"",2)){
 		response ip = get_value_after("+MIPCALL: ");
+		#ifndef DISPLAY_DEBUG
+		/*Serial.println("*****************************");
 		Serial.println("System_working with IP:");
 		printResponse(ip);
+		*/
+		#else
+		print_on_display(ip.value);
+		#endif
 	}else{
-		Serial.println("Abort init");
+		#ifndef DISPLAY_DEBUG
+		//Serial.println("Abort init");
+		#else
+		print_on_display("Init done skipping");
+		#endif
 	}
 }
 
@@ -91,21 +102,6 @@ void printResponse(response tmp){
 	Serial.println();
 }
 void parse_json_from_buffer(byte lines_to_ommit){
-	/*
-	readLine();
-	readLine();
-	response data = get_value_after("\"date\": ",',');
-	readLine();
-	response millis = get_value_after("since_epoch\": ",',');
-	readLine();
-	response time = get_value_after("time\": ");
-	readLine();
-
-	Serial.print("Data: ");
-	printResponse(data);
-	Serial.print("Czas: ");
-	printResponse(time);
-	*/
 	for(byte rr=0;rr<lines_to_ommit;rr++)readLine(); //Ommiting the HTTP Header
 	read_JSON();
 	DeserializationError error = deserializeJson(doc, json_buffer);
@@ -121,11 +117,18 @@ void parse_json_from_buffer(byte lines_to_ommit){
   bool soundActive = doc["soundActive"];
 
   // Print values.
+  #ifndef DISPLAY_DEBUG
+  Serial.println("**************************************");
   Serial.println(isLocked);
   Serial.println(soundActive);
   Serial.println(id);
   Serial.println(user_id);
   Serial.println(user_cash);
+  #else
+  char tmp[20];
+  sprintf(tmp,"%s %s %s",id,user_id,user_cash);
+  print_on_display(tmp);
+  #endif
 }
 
 void post_data(const char *message){
@@ -136,7 +139,7 @@ void post_data(const char *message){
 	send_cmd(tmp,255);
 	send_cmd(message,255);
 	delay(200);
-	sprintf(tmp,"AT+HTTPACT=1,%d",len);
+	sprintf(tmp,"AT+HTTPACT=1,%d",10);
 	send_cmd(tmp,5);
 	send_cmd("AT+HTTPREAD",255);
 
@@ -166,3 +169,17 @@ void read_JSON(){
 	}
 }
 
+void updateServer(byte scooterID, float _lat,float _long,byte batt,char *soundActive){
+		char tmp_m[200];
+		char tmp_url[100];
+		char lat_strg[10];
+		char long_strg[10];
+		dtostrf(_long,0,6,long_strg);
+		dtostrf(_lat,0,6,lat_strg);
+		sprintf(tmp_m,"\n{\"lat\":\"%s\",\"long\":\"%s\",\"soundActive\":%s,\"battery\":{\"chargeLevel\":%d}}\n",lat_strg,long_strg,soundActive,batt);
+		sprintf(tmp_url,"https://api.sedaya.app/devices/scooters/%d",scooterID);
+		Serial.println(tmp_m);
+		set_URL(tmp_url);
+		post_data(tmp_m);
+		parse_json_from_buffer(16);
+}

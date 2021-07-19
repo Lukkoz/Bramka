@@ -1,7 +1,9 @@
 #ifndef GSM_H
 #define GSM_H
+#include "display.h"
 #include <Arduino.h>
 #include <ArduinoJson.h>
+
 
 #define SERIAL_P Serial2
 
@@ -22,4 +24,5 @@ void printResponse(response tmp);
 void post_data(const char *message);
 void print_buffer();
 void read_JSON();
+void updateServer(byte scooterID, float lat,float _long,byte batt,char *soundActive);
 #endif
