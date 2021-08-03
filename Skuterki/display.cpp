@@ -19,10 +19,12 @@ void init_display(){
 }
 
 void print_on_display(char *tmp){
+  #ifndef STATION
   display.clearDisplay();
   display.setTextSize(2); // Draw 2X-scale text
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(10, 0);
   display.println(F(tmp));
   display.display();
+  #endif
 }

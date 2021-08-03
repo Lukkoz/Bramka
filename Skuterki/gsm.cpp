@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "gsm.h"
+#define STATION
 
 char buffer[500];
 char line_buffer[100];
@@ -12,12 +13,10 @@ bool send_cmd(const char* cmd,byte lines_to_read_extra){
 	readLine();//comnad echo
 	if(lines_to_read_extra != 255){
 	readLine();//OK
-	if(line_buffer[0] != 'O' || line_buffer[1] != 'K'){
-		//Serial.print("Fail sending:");
-		//Serial.println(cmd);
+	if(line_buffer[0] != 'O' && line_buffer[1] != 'K'){
+		Serial.println("Fail.");
 		return(operation);
 	}
-	operation = true;
 	for(byte rr =0; rr < lines_to_read_extra;rr++)readLine();
 	}
 	return(operation);
@@ -25,21 +24,27 @@ bool send_cmd(const char* cmd,byte lines_to_read_extra){
 
 void init_gsm(){
 	SERIAL_P.begin(9600, SERIAL_8N1, 13, 15);
+	print_on_display("INIT 1");
+	delay(3000);
+	print_on_display("INIT 2");
+	while(SERIAL_P.available()){
+		Serial.print(SERIAL_P.read());
+	}
 	send_cmd("AT");
 	send_cmd("AT+CMEE=2");
 	if(send_cmd("at+mipcall=1,\"internet\"",2)){
 		response ip = get_value_after("+MIPCALL: ");
 		#ifndef DISPLAY_DEBUG
-		/*Serial.println("*****************************");
+		Serial.println("*****************************");
 		Serial.println("System_working with IP:");
 		printResponse(ip);
-		*/
+		print_on_display("READY");
 		#else
 		print_on_display(ip.value);
 		#endif
 	}else{
 		#ifndef DISPLAY_DEBUG
-		//Serial.println("Abort init");
+		Serial.println("Abort init");
 		#else
 		print_on_display("Init done skipping");
 		#endif
@@ -110,31 +115,14 @@ void parse_json_from_buffer(byte lines_to_ommit){
 	    Serial.println(error.f_str());
 	    return;
  	}
-  const char* id = doc["id"];
-  const char* user_id = doc["user"]["id"];
-  const char* user_cash = doc["user"]["cashAmount"];
-  bool isLocked = doc["isLocked"];
-  bool soundActive = doc["soundActive"];
 
-  // Print values.
-  #ifndef DISPLAY_DEBUG
-  Serial.println("**************************************");
-  Serial.println(isLocked);
-  Serial.println(soundActive);
-  Serial.println(id);
-  Serial.println(user_id);
-  Serial.println(user_cash);
-  #else
-  char tmp[20];
-  sprintf(tmp,"%s %s %s",id,user_id,user_cash);
-  print_on_display(tmp);
-  #endif
 }
 
 void post_data(const char *message){
 	char tmp[100];
 	int len = strlen(message);
 	send_cmd("AT+HTTPSET=\"CONTYPE\",\"application/json\"");
+	Serial.println(message);
 	sprintf(tmp,"AT+HTTPDATA=%d",len);
 	send_cmd(tmp,255);
 	send_cmd(message,255);
@@ -169,17 +157,45 @@ void read_JSON(){
 	}
 }
 
-void updateServer(byte scooterID, float _lat,float _long,byte batt,char *soundActive){
+StaticJsonDocument<200> updateServerScooter(const char *scooterID, float _lat,float _long,byte batt,char *soundActive,char *openTrunk){
 		char tmp_m[200];
 		char tmp_url[100];
 		char lat_strg[10];
 		char long_strg[10];
 		dtostrf(_long,0,6,long_strg);
 		dtostrf(_lat,0,6,lat_strg);
-		sprintf(tmp_m,"\n{\"lat\":\"%s\",\"long\":\"%s\",\"soundActive\":%s,\"battery\":{\"chargeLevel\":%d}}\n",lat_strg,long_strg,soundActive,batt);
-		sprintf(tmp_url,"https://api.sedaya.app/devices/scooters/%d",scooterID);
+		sprintf(tmp_m,"\n{\"lat\":\"%s\",\"long\":\"%s\",\"soundActive\":%s,\"openTrunk\":%s,\"battery\":{\"chargeLevel\":%d}}\n",lat_strg,long_strg,soundActive,openTrunk,batt);
+		sprintf(tmp_url,"https://api.sedaya.app/devices/scooters/%s",scooterID);
 		Serial.println(tmp_m);
 		set_URL(tmp_url);
 		post_data(tmp_m);
 		parse_json_from_buffer(16);
+		return(doc);
+}
+
+StaticJsonDocument<200> updateServerScooter(const char *scooterID, float _lat,float _long,byte batt){
+		char tmp_m[200];
+		char tmp_url[100];
+		char lat_strg[10];
+		char long_strg[10];
+		dtostrf(_long,0,6,long_strg);
+		dtostrf(_lat,0,6,lat_strg);
+		sprintf(tmp_m,"\n{\"lat\":\"%s\",\"long\":\"%s\",\"battery\":{\"chargeLevel\":%d}}\n",lat_strg,long_strg,batt);
+		sprintf(tmp_url,"https://api.sedaya.app/devices/scooters/%s",scooterID);
+		Serial.println(tmp_m);
+		set_URL(tmp_url);
+		post_data(tmp_m);
+		parse_json_from_buffer(16);
+		return(doc);
+}
+
+void updateServerStation(const char *scooterID){
+		char tmp_m[200];
+		char tmp_url[100];
+		sprintf(tmp_m,"\n{\"scooters\":[{\"id\":\"%s\"}]}\n",scooterID);
+		sprintf(tmp_url,"https://api.sedaya.app/devices/stations/%d",1);
+		set_URL(tmp_url);
+		post_data(tmp_m);
+		for(byte rr = 0; rr<14;rr++)readLine();
+		
 }

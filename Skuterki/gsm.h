@@ -3,6 +3,7 @@
 #include "display.h"
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#define STATION
 
 
 #define SERIAL_P Serial2
@@ -24,5 +25,7 @@ void printResponse(response tmp);
 void post_data(const char *message);
 void print_buffer();
 void read_JSON();
-void updateServer(byte scooterID, float lat,float _long,byte batt,char *soundActive);
+StaticJsonDocument<200> updateServerScooter(const char *scooterID, float lat,float _long,byte batt,char *soundActive,char *openTrunk);
+StaticJsonDocument<200> updateServerScooter(const char *scooterID, float lat,float _long,byte batt);
+void updateServerStation(const char *scooterID);
 #endif
