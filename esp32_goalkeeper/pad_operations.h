@@ -5,8 +5,8 @@
 
 #define RS_MODE_PIN 21
 
-#define MIN_REACTION_LEVEL 20
-#define N_SAMPLE 15
+#define MIN_REACTION_LEVEL 200
+#define N_SAMPLE 30
 #define PADS_CONNECTED 12
 
 //PAD REQUESTS:

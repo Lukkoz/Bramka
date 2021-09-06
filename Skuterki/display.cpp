@@ -19,7 +19,7 @@ void init_display(){
 }
 
 void print_on_display(char *tmp){
-  #ifndef STATION
+  /*#ifndef STATION
   display.clearDisplay();
   display.setTextSize(2); // Draw 2X-scale text
   display.setTextColor(SSD1306_WHITE);
@@ -27,4 +27,5 @@ void print_on_display(char *tmp){
   display.println(F(tmp));
   display.display();
   #endif
+  */
 }

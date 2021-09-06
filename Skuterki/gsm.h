@@ -16,16 +16,18 @@ struct response {
 void init_gsm();
 void set_URL(char *url);
 void read_URL_json();
-void parse_json_from_buffer(byte lines_to_ommit);
-byte readLine();
+void parse_json_from_buffer();
+byte readLine(bool save = false);
 bool compare_line(const char* tmp);
-bool send_cmd(const char *cmd,byte lines_to_read_extra = 0);
+bool contains(const char* tag);
+int cti(char x);
+bool send_cmd(const char *cmd,byte lines_to_read_extra = 1,byte important_line = 0);
 response get_value_after(const char* tmp,char end_marker = '\n');
 void printResponse(response tmp);
-void post_data(const char *message);
 void print_buffer();
 void read_JSON();
-StaticJsonDocument<200> updateServerScooter(const char *scooterID, float lat,float _long,byte batt,char *soundActive,char *openTrunk);
+StaticJsonDocument<200> updateServerScooter(const char *scooterID, float lat,float _long,byte batt,char *soundActive,char *openTrunk,char *isCharging);
 StaticJsonDocument<200> updateServerScooter(const char *scooterID, float lat,float _long,byte batt);
 void updateServerStation(const char *scooterID);
+void performHTTPrequest(const char* url,const char* request_type,bool Authorization,char *msg);
 #endif

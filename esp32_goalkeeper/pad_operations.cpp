@@ -5,7 +5,7 @@ byte pad_readouts[PADS_CONNECTED];
 int pad_sums[PADS_CONNECTED] = {0};
 byte msg[5];
 byte pad_to_react = 0;
-byte pad_history[30][12];
+byte pad_history[N_SAMPLE][PADS_CONNECTED];
 bool hit_event = false;
 byte event_iterator = 0;
 bool valid_message = true;
@@ -70,20 +70,16 @@ byte read_from_panel(byte panelId,byte command,byte nbytesToRead){
 }
 
 byte raport_pad_status(bool debug_mode){
-  bool nonZero = false;
   for(int ii = 1; ii< padsConnected+1;ii++){
-    read_from_panel(ii,RAPORT_READOUT,3);
-    pad_readouts[ii-1] = msg[1];
+    pad_readouts[ii-1] = read_from_panel(ii,RAPORT_READOUT,3);
     if(pad_readouts[ii-1] > MIN_REACTION_LEVEL)hit_event = true;
   }
   if(hit_event){
-     int max_readout = MIN_REACTION_LEVEL;
     for(int jj = 0; jj< padsConnected;jj++){ 
         pad_history[event_iterator][jj] = pad_readouts[jj];
-  
       }
       event_iterator++;
-    if(event_iterator == N_SAMPLE){
+    if(event_iterator > N_SAMPLE){
       hit_event = false;
       event_iterator = 0;
       #ifdef DEBUG_MODE
@@ -126,13 +122,14 @@ byte raport_pad_status(bool debug_mode){
         setPanel(kk+1,GREEN);
       }
       }
-      delay(2000);
+      delay(1500);
       setPanel(0,OFF);
-      delay(500);
+      delay(50);
       }
       for(byte kk = 0;kk < PADS_CONNECTED; kk++)pad_sums[kk] =0;
       return(pad_to_react);
     }
+    return(0);
     }else{
       return(0);
     }

@@ -45,21 +45,31 @@ void setup()
   Serial.println();
   Serial.println("config done");
   #endif
-  delay(5000);
+  delay(2000);
   #ifdef DEBUG_MODE
   Serial.println("Sending debug blink");
   #endif
+  
   
   setPanel(0,RED);
   delay(1000);
   setPanel(0,OFF);
   delay(1000);
+
   //set_all(BLUE);
   /*while(true){
-    Serial.println(read_from_panel(5,RAPORT_READOUT,3));
+    for(byte rr = 1; rr < PADS_CONNECTED+1; rr++){
+    Serial.print(read_from_panel(rr,RAPORT_READOUT,3));
+    if(rr<12){
+    Serial.print(",");
+    }else{
+    Serial.println();
+    }
+    }
+    delay(100);
   }
   */
-  
+    
   
 }
 

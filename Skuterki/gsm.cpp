@@ -1,39 +1,70 @@
 #include <Arduino.h>
 #include "gsm.h"
-#define STATION
+
+#define DEBUG_MODE
 
 char buffer[500];
 char line_buffer[100];
 char json_buffer[500];
 StaticJsonDocument<200> doc;
+void  debug_print(const char* msg){
+	#ifdef DEBUG_MODE
+	Serial.println(msg);
+	#endif
+}
 
-bool send_cmd(const char* cmd,byte lines_to_read_extra){
+bool send_cmd(const char* cmd,byte lines_to_read_extra,byte important_line){
 	bool operation = false;
 	SERIAL_P.println(cmd);
 	readLine();//comnad echo
-	if(lines_to_read_extra != 255){
-	readLine();//OK
-	if(line_buffer[0] != 'O' && line_buffer[1] != 'K'){
-		Serial.println("Fail.");
-		return(operation);
+	for(byte rr =1; rr < lines_to_read_extra+1;rr++){
+		readLine(rr==important_line);
 	}
-	for(byte rr =0; rr < lines_to_read_extra;rr++)readLine();
+	return(true);
+}
+
+void sendCTRLZ(){
+	SERIAL_P.write(26); //"ctrl+z"
+}
+
+void performHTTPrequest(const char* tmp){
+	send_cmd("AT+HTTPTERM");
+	send_cmd("AT+HTTPINIT");
+	send_cmd("AT+CHTTPACT=\"api.sedaya.app\",80");
+	send_cmd(tmp);
+	sendCTRLZ();
+}
+
+void performHTTPrequest(const char* url,const char* request_type,bool Authorization,char *msg){
+	char tmp_request[1000];
+	byte reequest_counter = 0;
+	if(!Authorization){
+	sprintf(tmp_request,"%s %s HTTP/1.1\r\nHost: scooter.com\r\nUser-Agent: scooter\r\nContent-Type:application/json\r\nContent-Length: %d\r\n\r\n%s\r\n\r\n",request_type,url,strlen(msg),msg);
 	}
-	return(operation);
+	send_cmd("AT+HTTPTERM");
+	send_cmd("AT+HTTPINIT");
+	send_cmd("AT+CHTTPACT=\"api.sedaya.app\",80");
+	send_cmd(tmp_request,0); // number of new lines in http request
+	sendCTRLZ();
+	while(true){
+		readLine(true);
+		if(contains("DATA"))break;
+	}
+	debug_print("END OF THE REQUEST");
+
 }
 
 void init_gsm(){
-	SERIAL_P.begin(9600, SERIAL_8N1, 13, 15);
-	print_on_display("INIT 1");
-	delay(3000);
-	print_on_display("INIT 2");
+	SERIAL_P.begin(115200, SERIAL_8N1, 13, 15);
 	while(SERIAL_P.available()){
 		Serial.print(SERIAL_P.read());
 	}
 	send_cmd("AT");
 	send_cmd("AT+CMEE=2");
-	if(send_cmd("at+mipcall=1,\"internet\"",2)){
-		response ip = get_value_after("+MIPCALL: ");
+	if(send_cmd("AT+CGDCONT=1,\"IP\",\"internet\"")){
+		send_cmd("AT+NETOPEN",3,3);
+		send_cmd("AT+IPADDR",3,1);
+		response ip = get_value_after("+IPADDR: ");
 		#ifndef DISPLAY_DEBUG
 		Serial.println("*****************************");
 		Serial.println("System_working with IP:");
@@ -51,18 +82,22 @@ void init_gsm(){
 	}
 }
 
-byte readLine(){
+
+byte readLine(bool save){
 	byte line_index = 0;
 	bool eol = false;
 	while(!eol){
 		while(SERIAL_P.available() > 0){
-			line_buffer[line_index] = SERIAL_P.read();
-			Serial.print(line_buffer[line_index]);
-			if(line_buffer[line_index] == '\n'){
+			char tmp = SERIAL_P.read();
+			if(save)line_buffer[line_index] = tmp;
+			#ifdef DEBUG_MODE
+				Serial.print(tmp);
+			#endif
+			if(tmp == '\n'){
 				eol = true;
 				break;
 			}else{
-				line_index++;
+				if(save)line_index++;
 			}
 		}
 	}
@@ -91,6 +126,11 @@ response get_value_after(const char* tag, char end_marker){
  	return(output);
 }
 
+bool contains(const char* tag){
+	char *outcome = strstr(line_buffer,tag);
+	return(outcome != NULL);
+}
+
 
 void set_URL(char *url){
 	char tmp[200];
@@ -106,9 +146,32 @@ void printResponse(response tmp){
 	for(byte rr = 0; rr<tmp.len;rr++)Serial.print(tmp.value[rr]);
 	Serial.println();
 }
-void parse_json_from_buffer(byte lines_to_ommit){
-	for(byte rr=0;rr<lines_to_ommit;rr++)readLine(); //Ommiting the HTTP Header
+void parse_json_from_buffer(){
+	char tmp;
+	byte counter = 0;
+	while(true){
+		if(SERIAL_P.available() >0){
+			tmp = SERIAL_P.read();
+		}
+		if(tmp == '\r' && counter == 0){
+			counter++;
+		}else if(tmp == '\n' && counter == 1){
+			counter++;
+		}else if(tmp == '\r' && counter == 2){
+			counter++;
+		}else if(tmp == '\n' && counter == 3){
+			break;
+		}else{
+			counter = 0;
+		}
+	}
+	debug_print("END OF HEADER");
 	read_JSON();
+	debug_print("JSON LOADAED");
+	while(true){
+		readLine(true);
+		if(contains("+CHTTPACT: 0"))break;
+	}
 	DeserializationError error = deserializeJson(doc, json_buffer);
   	if (error) {
 	    Serial.print(F("deserializeJson() failed: "));
@@ -116,22 +179,9 @@ void parse_json_from_buffer(byte lines_to_ommit){
 	    return;
  	}
 
-}
-
-void post_data(const char *message){
-	char tmp[100];
-	int len = strlen(message);
-	send_cmd("AT+HTTPSET=\"CONTYPE\",\"application/json\"");
-	Serial.println(message);
-	sprintf(tmp,"AT+HTTPDATA=%d",len);
-	send_cmd(tmp,255);
-	send_cmd(message,255);
-	delay(200);
-	sprintf(tmp,"AT+HTTPACT=1,%d",10);
-	send_cmd(tmp,5);
-	send_cmd("AT+HTTPREAD",255);
 
 }
+
 void print_buffer(){
 	while(SERIAL_P.available()>0){
 		readLine();
@@ -143,33 +193,35 @@ void read_JSON(){
 	int line_index = 0;
 	bool opened = false;
  	while(true){
-		while(SERIAL_P.available() > 0){
-			json_buffer[line_index] = SERIAL_P.read();
-			if(json_buffer[line_index] == '{'){
+		if(SERIAL_P.available() > 0){
+			char tmp  = SERIAL_P.read();
+			if(tmp == '{'){
 				opened = true;
 				bracket_counter++;
-			}else if(json_buffer[line_index] == '}'){
+			}else if(tmp == '}'){
 				bracket_counter--;
 			}
-			line_index++;
+			if(opened){
+				json_buffer[line_index] = tmp;
+				line_index++;
+			}
 		}
 		if(opened && bracket_counter == 0)break;
 	}
 }
 
-StaticJsonDocument<200> updateServerScooter(const char *scooterID, float _lat,float _long,byte batt,char *soundActive,char *openTrunk){
+StaticJsonDocument<200> updateServerScooter(const char *scooterID, float _lat,float _long,byte batt,char *soundActive,char *openTrunk,char *isCharging){
 		char tmp_m[200];
 		char tmp_url[100];
 		char lat_strg[10];
 		char long_strg[10];
 		dtostrf(_long,0,6,long_strg);
 		dtostrf(_lat,0,6,lat_strg);
-		sprintf(tmp_m,"\n{\"lat\":\"%s\",\"long\":\"%s\",\"soundActive\":%s,\"openTrunk\":%s,\"battery\":{\"chargeLevel\":%d}}\n",lat_strg,long_strg,soundActive,openTrunk,batt);
+		sprintf(tmp_m,"{\"lat\":\"%s\",\"long\":\"%s\",\"soundActive\":%s,\"openTrunk\":%s,\"isCharging\":%s,\"battery\":{\"chargeLevel\":%d}}",lat_strg,long_strg,soundActive,openTrunk,isCharging,batt);
 		sprintf(tmp_url,"https://api.sedaya.app/devices/scooters/%s",scooterID);
 		Serial.println(tmp_m);
-		set_URL(tmp_url);
-		post_data(tmp_m);
-		parse_json_from_buffer(16);
+		performHTTPrequest(tmp_url,"POST",false,tmp_m);
+		parse_json_from_buffer();
 		return(doc);
 }
 
@@ -180,12 +232,11 @@ StaticJsonDocument<200> updateServerScooter(const char *scooterID, float _lat,fl
 		char long_strg[10];
 		dtostrf(_long,0,6,long_strg);
 		dtostrf(_lat,0,6,lat_strg);
-		sprintf(tmp_m,"\n{\"lat\":\"%s\",\"long\":\"%s\",\"battery\":{\"chargeLevel\":%d}}\n",lat_strg,long_strg,batt);
+		sprintf(tmp_m,"{\"lat\":\"%s\",\"long\":\"%s\",\"battery\":{\"chargeLevel\":%d}}",lat_strg,long_strg,batt);
 		sprintf(tmp_url,"https://api.sedaya.app/devices/scooters/%s",scooterID);
 		Serial.println(tmp_m);
-		set_URL(tmp_url);
-		post_data(tmp_m);
-		parse_json_from_buffer(16);
+		performHTTPrequest(tmp_url,"POST",false,tmp_m);
+		parse_json_from_buffer();
 		return(doc);
 }
 
@@ -194,8 +245,14 @@ void updateServerStation(const char *scooterID){
 		char tmp_url[100];
 		sprintf(tmp_m,"\n{\"scooters\":[{\"id\":\"%s\"}]}\n",scooterID);
 		sprintf(tmp_url,"https://api.sedaya.app/devices/stations/%d",1);
-		set_URL(tmp_url);
-		post_data(tmp_m);
-		for(byte rr = 0; rr<14;rr++)readLine();
-		
+		performHTTPrequest(tmp_url,"POST",false,tmp_m);
+		while(true){
+		readLine(true);
+		if(contains("+CHTTPACT: 0"))break;
+		}
+}
+
+int cti(char x){
+  int y = x - '0';
+  return(y);
 }
