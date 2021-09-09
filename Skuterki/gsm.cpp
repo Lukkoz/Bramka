@@ -59,8 +59,17 @@ void init_gsm(){
 	while(SERIAL_P.available()){
 		Serial.print(SERIAL_P.read());
 	}
+	pinMode(NETWORK_STATUS_PIN,OUTPUT);
+	pinMode(SERVER_STATUS_PIN,OUTPUT);
+	digitalWrite(NETWORK_STATUS_PIN,LOW);
+	digitalWrite(SERVER_STATUS_PIN,LOW);
 	send_cmd("AT");
 	send_cmd("AT+CMEE=2");
+	send_cmd("AT+CNMI=0,0,0,0,0");
+	
+	readLine_TIMEOUT(true,5000);
+	if(contains("CPIN: READY"));
+	
 	if(send_cmd("AT+CGDCONT=1,\"IP\",\"internet\"")){
 		send_cmd("AT+NETOPEN",3,3);
 		send_cmd("AT+IPADDR",3,1);
@@ -70,6 +79,7 @@ void init_gsm(){
 		Serial.println("System_working with IP:");
 		printResponse(ip);
 		print_on_display("READY");
+		digitalWrite(NETWORK_STATUS_PIN,HIGH);
 		#else
 		print_on_display(ip.value);
 		#endif
@@ -87,6 +97,29 @@ byte readLine(bool save){
 	byte line_index = 0;
 	bool eol = false;
 	while(!eol){
+		while(SERIAL_P.available() > 0){
+			char tmp = SERIAL_P.read();
+			if(save)line_buffer[line_index] = tmp;
+			#ifdef DEBUG_MODE
+				Serial.print(tmp);
+			#endif
+			if(tmp == '\n'){
+				eol = true;
+				break;
+			}else{
+				if(save)line_index++;
+			}
+		}
+	}
+	return(line_index);
+}
+
+byte readLine_TIMEOUT(bool save,long timeout){
+	byte line_index = 0;
+	bool eol = false;
+	long start = millis();
+	while(!eol){
+		if(millis() - start > timeout)break; 
 		while(SERIAL_P.available() > 0){
 			char tmp = SERIAL_P.read();
 			if(save)line_buffer[line_index] = tmp;
@@ -168,6 +201,8 @@ void parse_json_from_buffer(){
 	debug_print("END OF HEADER");
 	read_JSON();
 	debug_print("JSON LOADAED");
+	sendCTRLZ();
+	digitalWrite(SERVER_STATUS_PIN,HIGH);
 	while(true){
 		readLine(true);
 		if(contains("+CHTTPACT: 0"))break;

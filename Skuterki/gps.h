@@ -2,6 +2,7 @@
 #define GPS_H
 #include <Arduino.h>
 #include "gsm.h"
+#define GPS_STATUS_PIN 5
 
 struct gps_data {
 	float N;

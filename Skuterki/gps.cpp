@@ -30,9 +30,11 @@ bool read_gps_data(){
                           +(float)cti(gps_data_string.value[23])/600000
                           +(float)cti(gps_data_string.value[24])/6000000
                           +(float)cti(gps_data_string.value[25])/60000000;
+    digitalWrite(GPS_STATUS_PIN,HIGH);
   }else{
     Serial.println("GPS DATA NOT AVAILABLE!");
     tmp = false;
+    digitalWrite(GPS_STATUS_PIN,LOW);
   }
   return(tmp);
 }

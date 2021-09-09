@@ -3,8 +3,9 @@
 #include "display.h"
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#define STATION
-
+//#define STATION
+#define NETWORK_STATUS_PIN 19
+#define SERVER_STATUS_PIN 18
 
 #define SERIAL_P Serial2
 
@@ -18,6 +19,7 @@ void set_URL(char *url);
 void read_URL_json();
 void parse_json_from_buffer();
 byte readLine(bool save = false);
+byte readLine_TIMEOUT(bool save = false,long timeout = 18000);
 bool compare_line(const char* tmp);
 bool contains(const char* tag);
 int cti(char x);
