@@ -5,8 +5,9 @@
 
 #define RS_MODE_PIN 21
 
-#define MIN_REACTION_LEVEL 200
-#define N_SAMPLE 30
+#define MIN_REACTION_LEVEL 50
+#define COOLDOWN_LEVEL 50
+#define N_SAMPLE 50
 #define PADS_CONNECTED 12
 
 //PAD REQUESTS:
@@ -34,7 +35,9 @@ void enter_recive_mode();
 void SendMessage(byte addr,byte command);
 void set_all(byte req);
 void setPanel(byte panelId,byte requestID);
-byte read_from_panel(byte panelId,byte command,byte nbytesToRead);
+int read_from_panel(byte panelId,byte command,byte nbytesToRead);
 byte raport_pad_status(bool debug_mode = false);
+void cooldown_after_hit();
+void raport_pads(bool hit_only = false);
 
 #endif

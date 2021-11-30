@@ -1,7 +1,7 @@
 #define R_BUTTON_PIN 34
 #define G_BUTTON_PIN 32
 #define B_BUTTON_PIN 35
-#define INPUT_BUTTON_PIN 27
+#define INPUT_BUTTON_PIN 33
 
 #define BUTTON_PICK_TIME 5000
 #define BUTTON_DEBOUNCE 50
@@ -28,48 +28,36 @@ bool wifi_control = false;
 
 void setup()
 {
-	pinMode(RS_MODE_PIN,OUTPUT);
-  digitalWrite(RS_MODE_PIN,HIGH);
-  Serial2.begin(250000);
+
   pinMode(R_BUTTON_PIN,OUTPUT);
   pinMode(G_BUTTON_PIN,OUTPUT);
   pinMode(B_BUTTON_PIN,OUTPUT);
   pinMode(INPUT_BUTTON_PIN,INPUT_PULLUP);
   digitalWrite(R_BUTTON_PIN,LOW);
-  digitalWrite(G_BUTTON_PIN,LOW);
-  digitalWrite(B_BUTTON_PIN,LOW);
-  
+  digitalWrite(G_BUTTON_PIN,HIGH);
+  digitalWrite(B_BUTTON_PIN,LOW); 
+  pinMode(RS_MODE_PIN,OUTPUT);
+  digitalWrite(RS_MODE_PIN,HIGH);
+  delay(2000);
   Serial.begin(250000);
-  
+  Serial2.begin(250000);
+  Serial2.flush();
   #ifdef DEBUG_MODE
   Serial.println();
   Serial.println("config done");
   #endif
-  delay(2000);
   #ifdef DEBUG_MODE
   Serial.println("Sending debug blink");
   #endif
-  
-  
   setPanel(0,RED);
   delay(1000);
   setPanel(0,OFF);
   delay(1000);
-
-  //set_all(BLUE);
-  /*while(true){
-    for(byte rr = 1; rr < PADS_CONNECTED+1; rr++){
-    Serial.print(read_from_panel(rr,RAPORT_READOUT,3));
-    if(rr<12){
-    Serial.print(",");
-    }else{
-    Serial.println();
-    }
-    }
-    delay(100);
+ /*while(true){
+ int tmp =read_from_panel(11,RAPORT_READOUT,3);
+  Serial.println(tmp);
   }
   */
-    
   
 }
 
@@ -77,8 +65,16 @@ bool user_action_check(){
   byte tmp_state = user_state;
   if(wifi_control){
     user_state = wifi_check_for_client();
+    buttonCheck();
+    if(state_changed){
+      wifi_control = false;
+      wifi_end();
+      user_state = IDLE;
+      state_changed = false;
+    }
   }else{
     user_state = buttonCheck();
+    state_changed = false;
   }
   if(tmp_state != user_state){
     game_active = false;
@@ -125,6 +121,7 @@ void start_game_one(){
         delay(1000);
         setPanel(active_panel,OFF);
       }
+      if(active_panel != 0)cooldown_after_hit();
     if(user_action_check()){
       user_interrupt = true;
       break;

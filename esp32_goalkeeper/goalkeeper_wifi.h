@@ -5,6 +5,7 @@
 
 
 void wifi_begin();
+void wifi_end();
 byte wifi_check_for_client();
 
 #endif

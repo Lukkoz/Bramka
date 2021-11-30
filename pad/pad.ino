@@ -1,4 +1,3 @@
-#include <SPI.h>
 #include "Adafruit_NeoPixel.h"
 volatile boolean received;
 volatile byte Slavereceived,Slavesend;
@@ -6,15 +5,15 @@ volatile byte Slavereceived,Slavesend;
 #include "Adafruit_NeoPixel.h"
 #define   Sensor_1_PIN  A1
 #define   Sensor_2_PIN A0
-#define   LEDPIN 5
-#define   NUMPIXELS 144
+#define   LEDPIN 4
+#define   NUMPIXELS 68
 #define   TRESHOLD 400
 #define   RS_MODE_PIN 2
 #define   SLAVE_CS 3
-#define   PAD_ID_1 4
-#define   PAD_ID_2 5
-#define   PAD_ID_3 6
-#define   PAD_ID_4 7
+#define   PAD_ID_1 9
+#define   PAD_ID_2 8
+#define   PAD_ID_3 7
+#define   PAD_ID_4 6
 
 #define PAD_ID 10
 
@@ -60,6 +59,7 @@ bool hitSignal = false;
 byte msg[3],recovery_tmp[5];
 byte i_counter = 0;
 byte checksum_tmp = 0;
+byte readout = 0;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
 byte led_intensitivity = INTENSIVITY_1;
 void enter_transmit_mode(){
@@ -74,22 +74,25 @@ void enter_recive_mode(){
 void setup()
 
 { 
-  pinMode(PAD_ID_1,INPUT);
-  pinMode(PAD_ID_2,INPUT);
-  pinMode(PAD_ID_3,INPUT);
-  pinMode(PAD_ID_4,INPUT);
-  padID = 1*digitalRead(PAD_ID_1)+2*digitalRead(PAD_ID_2)+4*digitalRead(PAD_ID_3)+8*digitalRead(PAD_ID_4);
+  pinMode(PAD_ID_1,INPUT_PULLUP);
+  pinMode(PAD_ID_2,INPUT_PULLUP);
+  pinMode(PAD_ID_3,INPUT_PULLUP);
+  pinMode(PAD_ID_4,INPUT_PULLUP);
+  byte a1 = (byte)digitalRead(PAD_ID_1);
+  byte a2 = (byte)digitalRead(PAD_ID_2);
+  byte a3 = (byte)digitalRead(PAD_ID_3);
+  byte a4 = (byte)digitalRead(PAD_ID_4);
+  padID = 1*a1+2*a2+4*a3+8*a4;
   pixels.begin();
-
   pinMode(RS_MODE_PIN,OUTPUT);
- //enter_recive_mode();
+  enter_recive_mode();
   digitalWrite(RS_MODE_PIN,LOW);
   pinMode(13,OUTPUT);   //DEBUG LED
   Serial.begin(250000);
   pinMode(2,OUTPUT);
   digitalWrite(2,LOW);
   for(int i = 0 ; i < padID; i++){
-    pixels.setPixelColor(2*i, pixels.Color(0,0,led_intensitivity));                                              
+    pixels.setPixelColor(i+1, pixels.Color(0,0,led_intensitivity));                                              
   }
     pixels.show(); 
 
@@ -123,7 +126,6 @@ void get_back_on_track(){
       recovery_tmp[jj] = Serial.read();
       jj++;
       if(jj == 4 && (recovery_tmp[1]^recovery_tmp[2]) == (recovery_tmp[3]-4)){
-        
         break;
       }
       if(jj == 5 && (recovery_tmp[2]^recovery_tmp[3]) == (recovery_tmp[4]-4)){
@@ -149,7 +151,7 @@ void loop(){
 
 void lights_up(byte R, byte G, byte B) {
     for(int i = 0 ; i < NUMPIXELS; i++){
-      if(i%2 ==0)pixels.setPixelColor(i, pixels.Color(R,G,B));                                              
+      pixels.setPixelColor(i, pixels.Color(R,G,B));                                              
     }
     pixels.show(); 
 }
@@ -231,9 +233,9 @@ void handle_message(byte frame) {
     case RAPORT_READOUT:
           enter_transmit_mode();
             Serial.write(13);
-            checksum_tmp = normalized_sensor_read();
-            Serial.write(checksum_tmp);
-            checksum_tmp=13^checksum_tmp;
+            byte readout = normalized_sensor_read();
+            Serial.write(readout);
+            checksum_tmp=13^readout;
             checksum_tmp+=4;
             Serial.write(checksum_tmp);
           enter_recive_mode();
@@ -252,7 +254,6 @@ void handle_message(byte frame) {
 
 byte normalized_sensor_read(){
   int readout = analogRead(Sensor_2_PIN);
-  if(readout > 255)readout = 255;
-  byte out = readout;
-  return(out);
+  int out = readout/4;
+  return((byte)out);
 }
