@@ -5,8 +5,8 @@
 
 #define RS_MODE_PIN 21
 
-#define MIN_REACTION_LEVEL 50
-#define COOLDOWN_LEVEL 50
+#define MIN_REACTION_LEVEL 25
+#define COOLDOWN_LEVEL 25
 #define N_SAMPLE 50
 #define PADS_CONNECTED 12
 

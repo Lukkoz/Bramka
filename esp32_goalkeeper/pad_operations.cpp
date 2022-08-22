@@ -3,7 +3,7 @@
 byte padsConnected =PADS_CONNECTED;
 int pad_readouts[PADS_CONNECTED];
 int pad_sums[PADS_CONNECTED] = {0};
-int pad_d_sums[PADS_CONNECTED] = {0};
+int pad_d[PADS_CONNECTED] = {0};
 byte msg[5];
 byte pad_to_react = 0;
 byte pad_history[N_SAMPLE][PADS_CONNECTED];
@@ -77,11 +77,18 @@ void cooldown_after_hit(){
   bool tmp = true;
   byte n = 0;
   long cooldown_time_start = millis();
+  for(byte rr = 0; rr< PADS_CONNECTED;rr++)pad_d[rr] = 255;
   while(true){
   tmp =  false;
   for(int ii = 1; ii< padsConnected+1;ii++){
     pad_readouts[ii-1] = read_from_panel(ii,RAPORT_READOUT,3);
     if(pad_readouts[ii-1] < 0 || pad_readouts[ii-1] > COOLDOWN_LEVEL) tmp = true;
+    if((pad_readouts[ii-1] - pad_d[ii-1]) > MIN_REACTION_LEVEL){
+      n = 2;
+      tmp = false;
+    } else{
+      pad_d[ii-1] = pad_readouts[ii-1];
+    }
     if(ii == pad_to_react && pad_readouts[ii-1] > 0)Serial.println(pad_readouts[ii-1]);
     }
     if(!tmp){
@@ -89,6 +96,7 @@ void cooldown_after_hit(){
     }else{
       n =0;
     }
+
     if(millis() - cooldown_time_start > 20000)break;
     if(n >2)break;
   }
@@ -107,8 +115,6 @@ void raport_pads(bool hit_only){
         
         for(byte hh = 1; hh<N_SAMPLE;hh++){
           Serial.print(pad_history[hh][rr]);
-          if(hh != N_SAMPLE-1)Serial.print(",");
-          pad_d_sums[rr] +=(abs(pad_history[hh][rr]-pad_history[hh-1][rr]));
         }
         /*
         Serial.print("|");
@@ -116,7 +122,6 @@ void raport_pads(bool hit_only){
         Serial.print("|");
         */
         Serial.println(")");
-        pad_d_sums[rr] = 0;
       }
       Serial.print("plot(P");
       Serial.print(pad_to_react);

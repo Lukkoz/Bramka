@@ -146,11 +146,11 @@ void start_game_two(){
   bool user_interrupt = false;
   set_all(BLUE);
   delay(200);
-  while(millis() - game_started < 45000){
+  while(millis() - game_started < 60000){
     byte active_panel = raport_pad_status();
     if(active_panel != 0){
       setPanel(active_panel,GREEN);
-      delay(500);
+      cooldown_after_hit();
     }
     if(user_action_check()){
       user_interrupt = true;
