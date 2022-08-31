@@ -7,26 +7,32 @@ OPERATION ID:
 #define OPERATION_IDENTIFY  1
 #define OPERATION_NOFIFY_CLIENT 2
 #define OPERATION_NOTIFY_SERVER  3
+#define OPERATION_UNNOTIFY_SERVER  4
 
 
-#define   PAD_ID_1 9
-#define   PAD_ID_2 8
-#define   PAD_ID_3 7
-#define   PAD_ID_4 6
+#define   PAD_ID_1 36
+#define   PAD_ID_2 37
+#define   PAD_ID_3 38
+#define   PAD_ID_4 39
 
-#define	  LED_PIN 20
-#define	  BUZZER_PIN 21
-#define	  BUTTON_PIN 15
+#define	  LED_PIN 10
+#define	  BUZZER_PIN 4
+#define	  BUTTON_PIN 9
 
 
 #include "heltec.h"
 #include "Adafruit_NeoPixel.h"
-#define NUMPIXELS 2
 #define BAND    868E6  
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
 
 int counter = 0;
 byte deviceId = 2;
+bool notified_server = false;
+bool blinking_mode = false;
+bool buzzer_active = false;
+long notification_accept_time = 0;
+long last_flip_time = 0;
+bool led_state = false;
 
 
 void read_ID() {								// reading the ID from hardware register
@@ -43,14 +49,36 @@ void read_ID() {								// reading the ID from hardware register
 
 void setup() {
 	Serial.begin(115200);
+	pinMode(BUTTON_PIN, INPUT_PULLUP);
+	pinMode(BUZZER_PIN, OUTPUT);
+	pinMode(LED_PIN, OUTPUT);
+	for (byte rr = 0; rr < 5;rr++) {
+		led_on();
+		delay(500);
+		led_off();
+		delay(500);
+	}
+	digitalWrite(BUZZER_PIN, LOW);
 	//WIFI Kit series V1 not support Vext control
 	Heltec.begin(false /*DisplayEnable Enable*/, true /*Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
 	LoRa.setTxPower(14, RF_PACONFIG_PASELECT_PABOOST);
 	//read_ID();
-	pinMode(BUTTON_PIN, INPUT);
-	pinMode(BUZZER_PIN, OUTPUT);
-	pixels.begin();
 	
+	
+}
+void led_on() {
+	digitalWrite(LED_PIN, HIGH);
+	led_state = true;
+}
+
+void led_off() {
+	digitalWrite(LED_PIN, LOW);
+	led_state = false;
+}
+
+void flip_led() {
+	digitalWrite(LED_PIN, !led_state);
+	led_state = !led_state;
 }
 
 void sendMessageToServer(byte operation) {
@@ -81,6 +109,14 @@ void handleOperation(byte O_ID) {
 		break;
 	case OPERATION_NOFIFY_CLIENT:
 		Serial.println("CLIENT NOTIFICATION!");
+		notification_accept_time = millis();
+		last_flip_time = notification_accept_time;
+		notified_server = true;
+		if (notified_server) {
+			blinking_mode = true;
+			digitalWrite(BUZZER_PIN, HIGH);
+			
+		}
 		break;
 	default:
 		break;
@@ -105,21 +141,47 @@ void reciveMessage() {
 		else {
 			flushLoraData();
 		}
-	
-		
-	
 	}
 }
 
 void loop() {
-	if (Serial.available()) {
+
+	if (!notified_server && digitalRead(BUTTON_PIN) == LOW) {
+		long click_time = millis();	
+		led_on();
 		sendMessageToServer(OPERATION_NOTIFY_SERVER);
-		Serial.read();
-		delay(1000);
+		notified_server = true;
+		
+		digitalWrite(BUZZER_PIN, HIGH);
+		delay(500);
+		digitalWrite(BUZZER_PIN, LOW);
 	}
-	
+	else if (blinking_mode) {
+		if (millis() - last_flip_time > 500) {
+			flip_led();
+			last_flip_time = millis();
+		}
+		if (millis() - notification_accept_time > 1500) {
+			digitalWrite(BUZZER_PIN, LOW);
+		}
+		if (millis() - notification_accept_time > 60000) {
+			notified_server = false;
+			blinking_mode = false;
+		}
+	}
+	else if (notified_server && digitalRead(BUTTON_PIN) == LOW) {
+		long click_time = millis();
+		while (digitalRead(BUTTON_PIN) == LOW) {
+			Serial.println(digitalRead(BUTTON_PIN));
+			if (millis() - click_time > 3000) {
+				led_off();
+				sendMessageToServer(OPERATION_UNNOTIFY_SERVER);
+				notified_server = false;
+				break;
+			}
+		}
+		while (digitalRead(BUTTON_PIN) == LOW);
+		delay(300);
+	}
 	reciveMessage();
-
-
-
 }
