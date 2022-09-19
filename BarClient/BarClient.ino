@@ -8,6 +8,7 @@ OPERATION ID:
 #define OPERATION_NOFIFY_CLIENT 2
 #define OPERATION_NOTIFY_SERVER  3
 #define OPERATION_UNNOTIFY_SERVER  4
+#define OPERATION_SERVER_ACCEPT_NOTIFICATION 5
 
 
 #define   PAD_ID_1 36
@@ -28,10 +29,12 @@ OPERATION ID:
 int counter = 0;
 byte deviceId = 2;
 bool notified_server = false;
+bool notification_server_accepted = false;
 bool blinking_mode = false;
 bool buzzer_active = false;
 long notification_accept_time = 0;
 long last_flip_time = 0;
+long last_notification_send_time = 0;
 bool led_state = false;
 
 
@@ -115,8 +118,13 @@ void handleOperation(byte O_ID) {
 		if (notified_server) {
 			blinking_mode = true;
 			digitalWrite(BUZZER_PIN, HIGH);
-			
 		}
+		break;
+	case OPERATION_SERVER_ACCEPT_NOTIFICATION:
+		notification_server_accepted = true;
+		led_off();
+		delay(500);
+		led_on();
 		break;
 	default:
 		break;
@@ -136,6 +144,7 @@ void reciveMessage() {
 				return;
 			}
 			byte operation_id = LoRa.read();
+			Serial.println(operation_id);
 			handleOperation(operation_id);
 		}
 		else {
@@ -151,10 +160,10 @@ void loop() {
 		led_on();
 		sendMessageToServer(OPERATION_NOTIFY_SERVER);
 		notified_server = true;
-		
 		digitalWrite(BUZZER_PIN, HIGH);
 		delay(500);
 		digitalWrite(BUZZER_PIN, LOW);
+		last_notification_send_time = millis();
 	}
 	else if (blinking_mode) {
 		if (millis() - last_flip_time > 500) {
@@ -167,6 +176,7 @@ void loop() {
 		if (millis() - notification_accept_time > 60000) {
 			notified_server = false;
 			blinking_mode = false;
+			notification_server_accepted = false;
 		}
 	}
 	else if (notified_server && digitalRead(BUTTON_PIN) == LOW) {
@@ -177,11 +187,21 @@ void loop() {
 				led_off();
 				sendMessageToServer(OPERATION_UNNOTIFY_SERVER);
 				notified_server = false;
+				notification_server_accepted = false;
 				break;
 			}
 		}
 		while (digitalRead(BUTTON_PIN) == LOW);
 		delay(300);
+	}
+	else if (notified_server && !notification_server_accepted) {
+		if (millis() - last_notification_send_time > 5000) {
+			sendMessageToServer(OPERATION_NOTIFY_SERVER);
+			last_notification_send_time = millis();
+			led_off();
+			delay(200);
+			led_on();
+		}
 	}
 	reciveMessage();
 }

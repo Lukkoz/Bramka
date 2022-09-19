@@ -6,6 +6,7 @@
 #define OPERATION_NOFIFY_CLIENT 2
 #define OPERATION_NOTIFY_SERVER  3
 #define OPERATION_UNNOTIFY_SERVER 4
+#define OPERATION_SERVER_ACCEPT_NOTIFICATION 5
 
 #define CLIENT_STATUS_NOT_CONECTED 0
 #define CLIENT_STATUS_IDLE 1
@@ -158,8 +159,6 @@ void updateBarNotofications() {
 	
 }
 
-
-
 bool reciveMessage() {
 	int packetSize = LoRa.parsePacket();
 	if (packetSize) {
@@ -185,6 +184,8 @@ void handleOperation(byte messageHost, byte operation_id) {
 	case OPERATION_NOTIFY_SERVER:
 		handleServerNotification(messageHost);
 		soundAlarm = true;
+		delay(1000);
+		sendMessageToClient(messageHost,OPERATION_SERVER_ACCEPT_NOTIFICATION);
 		alarm_start_time = millis();
 		digitalWrite(BUZZER_PIN, HIGH);
 		break;
@@ -213,6 +214,8 @@ void askForIdentification() {
 void setup() {
 	Serial.begin(115200);
 	//WIFI Kit series V1 not support Vext control
+	pinMode(BUZZER_PIN, OUTPUT);
+	digitalWrite(BUZZER_PIN, LOW);
 	pixels.begin();
 	pixels.setPixelColor(1, pixels.Color(0, 255, 255));
 	pixels.setPixelColor(2, pixels.Color(0, 255, 255));
